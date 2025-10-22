@@ -1,0 +1,12 @@
+{
+  "name": "documents-handler",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "drizzle-orm": "^0.29.0",
+    "postgres": "^3.4.0",
+    "redis": "^4.6.0",
+    "axios": "^1.12.2",
+    "@aws-sdk/client-s3": "^3.400.0"
+  }
+}

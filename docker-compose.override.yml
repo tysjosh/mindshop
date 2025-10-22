@@ -1,0 +1,76 @@
+# Development environment overrides
+# This file is automatically loaded by docker-compose for local development
+
+services:
+  postgres:
+    environment:
+      # Development-specific settings
+      POSTGRES_HOST_AUTH_METHOD: trust
+    command: >
+      postgres
+      -c shared_preload_libraries=vector
+      -c max_connections=100
+      -c shared_buffers=128MB
+      -c effective_cache_size=512MB
+      -c maintenance_work_mem=32MB
+      -c work_mem=2MB
+      -c log_statement=ddl
+      -c log_min_duration_statement=5000
+      -c log_checkpoints=off
+      -c log_connections=off
+      -c log_disconnections=off
+      -c log_lock_waits=off
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  redis:
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --loglevel notice
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 256M
+
+  # Add a Redis Commander for development
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: mindsdb-rag-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    profiles:
+      - tools
+
+  # Add pgAdmin for development
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: mindsdb-rag-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@mindsdb.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    profiles:
+      - tools
+
+volumes:
+  pgadmin_data:

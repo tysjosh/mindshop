@@ -1,0 +1,106 @@
+# Production environment configuration
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+version: '3.8'
+
+services:
+  postgres:
+    environment:
+      # Production security settings
+      POSTGRES_HOST_AUTH_METHOD: md5
+    command: >
+      postgres
+      -c shared_preload_libraries=vector
+      -c max_connections=300
+      -c shared_buffers=512MB
+      -c effective_cache_size=2GB
+      -c maintenance_work_mem=128MB
+      -c work_mem=8MB
+      -c max_worker_processes=16
+      -c max_parallel_workers_per_gather=8
+      -c max_parallel_workers=16
+      -c max_parallel_maintenance_workers=8
+      -c wal_buffers=32MB
+      -c min_wal_size=2GB
+      -c max_wal_size=8GB
+      -c checkpoint_completion_target=0.9
+      -c random_page_cost=1.0
+      -c effective_io_concurrency=300
+      -c log_statement=none
+      -c log_min_duration_statement=10000
+      -c log_checkpoints=on
+      -c log_connections=off
+      -c log_disconnections=off
+      -c log_lock_waits=on
+      -c shared_buffers=512MB
+      -c huge_pages=try
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  redis:
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --appendonly yes
+      --appendfsync everysec
+      --auto-aof-rewrite-percentage 100
+      --auto-aof-rewrite-min-size 128mb
+      --tcp-keepalive 300
+      --timeout 300
+      --loglevel warning
+      --syslog-enabled no
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # Production monitoring
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: mindsdb-rag-redis-exporter
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    ports:
+      - "9121:9121"
+    depends_on:
+      - redis
+    profiles:
+      - monitoring
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: mindsdb-rag-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:password@postgres:5432/mindsdb_rag?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      - postgres
+    profiles:
+      - monitoring

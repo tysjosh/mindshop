@@ -1,0 +1,238 @@
+semanticSearch:
+  post:
+    tags:
+      - Search
+    summary: Perform semantic search
+    description: |
+      Search documents using semantic similarity based on vector embeddings.
+      Returns the most relevant documents ranked by cosine similarity.
+    operationId: semanticSearch
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/SemanticSearchRequest'
+    responses:
+      '200':
+        description: Search completed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/SemanticSearchResponse'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+      '400':
+        description: Invalid search request
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+      '403':
+        description: Access denied to merchant resources
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+
+searchSuggestions:
+  get:
+    tags:
+      - Search
+    summary: Get search suggestions
+    description: |
+      Get search query suggestions based on popular searches and document content.
+      Useful for implementing autocomplete functionality.
+    operationId: getSearchSuggestions
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchantId
+        in: query
+        required: true
+        schema:
+          type: string
+        example: "merchant_123"
+      - name: query
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 100
+        example: "wireless"
+        description: Partial search query for suggestions
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 10
+        example: 10
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+        example: "electronics"
+        description: Filter suggestions by category
+    responses:
+      '200':
+        description: Suggestions retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    suggestions:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          query:
+                            type: string
+                            example: "wireless headphones"
+                          category:
+                            type: string
+                            example: "electronics"
+                          popularity:
+                            type: integer
+                            example: 150
+                            description: Number of times this query was searched
+                          resultCount:
+                            type: integer
+                            example: 25
+                            description: Number of documents matching this query
+                    query:
+                      type: string
+                      example: "wireless"
+                    totalSuggestions:
+                      type: integer
+                      example: 10
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+
+searchAnalytics:
+  get:
+    tags:
+      - Search
+    summary: Get search analytics
+    description: |
+      Retrieve analytics about search queries, popular terms, and search performance.
+    operationId: getSearchAnalytics
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchantId
+        in: query
+        required: true
+        schema:
+          type: string
+        example: "merchant_123"
+      - name: timeRange
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [24h, 7d, 30d, 90d]
+          default: "7d"
+        example: "7d"
+      - name: groupBy
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [hour, day, week]
+          default: "day"
+    responses:
+      '200':
+        description: Analytics retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    totalSearches:
+                      type: integer
+                      example: 5420
+                    uniqueQueries:
+                      type: integer
+                      example: 1250
+                    averageResultsPerQuery:
+                      type: number
+                      example: 8.5
+                    averageResponseTime:
+                      type: number
+                      example: 0.15
+                      description: Average response time in seconds
+                    topQueries:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          query:
+                            type: string
+                            example: "wireless headphones"
+                          count:
+                            type: integer
+                            example: 245
+                          averageResults:
+                            type: number
+                            example: 12.3
+                    noResultQueries:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          query:
+                            type: string
+                            example: "purple unicorn headphones"
+                          count:
+                            type: integer
+                            example: 5
+                    searchesByTimeRange:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          timestamp:
+                            type: string
+                            format: date-time
+                          count:
+                            type: integer
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid

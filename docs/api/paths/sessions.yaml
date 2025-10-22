@@ -1,0 +1,280 @@
+sessions:
+  get:
+    tags:
+      - Sessions
+    summary: List user sessions
+    description: |
+      Retrieve a list of user sessions for a merchant with filtering and pagination.
+      Includes session metadata and activity information.
+    operationId: listSessions
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchantId
+        in: query
+        required: true
+        schema:
+          type: string
+        example: "merchant_123"
+      - name: userId
+        in: query
+        required: false
+        schema:
+          type: string
+        example: "user_456"
+        description: Filter sessions by user ID
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [active, inactive, expired]
+        example: "active"
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+    responses:
+      '200':
+        description: Sessions retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    sessions:
+                      type: array
+                      items:
+                        $ref: '../components/schemas.yaml#/Session'
+                    pagination:
+                      $ref: '../components/schemas.yaml#/Pagination'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+  
+  post:
+    tags:
+      - Sessions
+    summary: Create new session
+    description: Create a new user session for chat interactions
+    operationId: createSession
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - merchantId
+              - userId
+            properties:
+              merchantId:
+                type: string
+                example: "merchant_123"
+              userId:
+                type: string
+                example: "user_456"
+              metadata:
+                type: object
+                properties:
+                  userAgent:
+                    type: string
+                    example: "Mozilla/5.0..."
+                  ipAddress:
+                    type: string
+                    example: "192.168.1.1"
+                  preferences:
+                    type: object
+                    example: { "language": "en", "theme": "dark" }
+    responses:
+      '201':
+        description: Session created successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/Session'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuidse
+ssionById:
+  get:
+    tags:
+      - Sessions
+    summary: Get session by ID
+    description: Retrieve detailed information about a specific session
+    operationId: getSessionById
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+      - name: merchantId
+        in: query
+        required: true
+        schema:
+          type: string
+        example: "merchant_123"
+    responses:
+      '200':
+        description: Session retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/Session'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+      '404':
+        description: Session not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+
+  patch:
+    tags:
+      - Sessions
+    summary: Update session
+    description: Update session metadata or status
+    operationId: updateSession
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - merchantId
+            properties:
+              merchantId:
+                type: string
+                example: "merchant_123"
+              status:
+                type: string
+                enum: [active, inactive, expired]
+              metadata:
+                type: object
+    responses:
+      '200':
+        description: Session updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/Session'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+
+sessionAnalytics:
+  get:
+    tags:
+      - Sessions
+    summary: Get session analytics
+    description: Retrieve analytics and metrics for sessions
+    operationId: getSessionAnalytics
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchantId
+        in: query
+        required: true
+        schema:
+          type: string
+        example: "merchant_123"
+      - name: timeRange
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [24h, 7d, 30d, 90d]
+          default: "7d"
+        example: "7d"
+      - name: groupBy
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [hour, day, week]
+          default: "day"
+    responses:
+      '200':
+        description: Analytics retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/SessionAnalytics'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid

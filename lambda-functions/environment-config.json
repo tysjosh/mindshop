@@ -1,0 +1,168 @@
+{
+  "description": "Environment variables configuration for MindsDB RAG Assistant Lambda functions",
+  "note": "Replace placeholder values with your actual AWS resource endpoints and IDs",
+  
+  "common_variables": {
+    "NODE_ENV": "production",
+    "BEDROCK_REGION": "us-east-2",
+    "AWS_REGION": "us-east-2"
+  },
+  
+  "vpc_functions": {
+    "description": "Environment variables for Lambda functions that run in VPC and call MindsDB",
+    "functions": [
+      "mindsdb-rag-chat-api-dev",
+      "mindsdb-rag-documents-api-dev", 
+      "mindsdb-rag-bedrock-api-dev",
+      "mindsdb-rag-semantic-api-dev",
+      "mindsdb-rag-checkout-api-dev",
+      "mindsdb-rag-bedrock-tools-dev",
+      "mindsdb-rag-doc-ingestion-dev"
+    ],
+    "variables": {
+      "MINDSDB_ENDPOINT": "http://YOUR_ALB_DNS_NAME",
+      "DB_HOST": "YOUR_AURORA_WRITER_ENDPOINT",
+      "REDIS_HOST": "YOUR_REDIS_ENDPOINT_WITHOUT_PORT",
+      "REDIS_PORT": "6379",
+      "BEDROCK_REGION": "us-east-2",
+      "NODE_ENV": "production",
+      "KMS_KEY_ID": "YOUR_KMS_KEY_ID",
+      "S3_DOCUMENTS_BUCKET": "mindsdb-rag-documents-123456789012-us-east-2",
+      "S3_MODELS_BUCKET": "mindsdb-rag-models-123456789012-us-east-2",
+      "S3_AUDIT_BUCKET": "mindsdb-rag-audit-123456789012-us-east-2",
+      "DYNAMODB_SESSION_TABLE": "mindsdb-rag-sessions-dev",
+      "COGNITO_USER_POOL_ID": "us-east-2_xxxxxxxxx",
+      "COGNITO_CLIENT_ID": "xxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  },
+  
+  "public_functions": {
+    "description": "Environment variables for public Lambda functions (no VPC)",
+    "functions": [
+      "mindsdb-rag-health-api-dev"
+    ],
+    "variables": {
+      "NODE_ENV": "production",
+      "SERVICE_NAME": "MindsDB RAG Assistant",
+      "VERSION": "1.0.0"
+    }
+  },
+  
+  "deployment_values": {
+    "description": "Replace these placeholders with actual values from your AWS deployment",
+    "placeholders": {
+      "YOUR_ALB_DNS_NAME": {
+        "description": "Internal ALB DNS name from Step 21 (ECS service creation)",
+        "example": "mindsdb-rag-alb-dev-123456789.us-east-2.elb.amazonaws.com",
+        "how_to_find": "Go to EC2 Console → Load Balancers → Find 'mindsdb-rag-alb-dev' → Copy DNS name"
+      },
+      "YOUR_AURORA_WRITER_ENDPOINT": {
+        "description": "Aurora PostgreSQL writer endpoint from Step 5",
+        "example": "mindsdb-rag-aurora-dev.cluster-xxxxxxxxx.us-east-2.rds.amazonaws.com",
+        "how_to_find": "Go to RDS Console → Databases → Click cluster name → Copy Writer endpoint"
+      },
+      "YOUR_REDIS_ENDPOINT_WITHOUT_PORT": {
+        "description": "ElastiCache Redis endpoint from Step 6 (without :6379)",
+        "example": "mindsdb-rag-redis-dev.xxxxxx.cache.amazonaws.com",
+        "how_to_find": "Go to ElastiCache Console → Redis clusters → Copy Primary endpoint (remove :6379)"
+      },
+      "YOUR_KMS_KEY_ID": {
+        "description": "KMS key ID from Step 1",
+        "example": "abcd1234-a123-456a-a12b-a123b4cd56ef",
+        "how_to_find": "Go to KMS Console → Customer managed keys → Find 'mindsdb-rag-encryption-key-dev' → Copy Key ID"
+      },
+      "123456789012": {
+        "description": "Your AWS Account ID",
+        "how_to_find": "Click your username in AWS Console top-right corner"
+      },
+      "us-east-2_xxxxxxxxx": {
+        "description": "Cognito User Pool ID from Step 11",
+        "how_to_find": "Go to Cognito Console → User pools → Find your pool → Copy Pool ID"
+      },
+      "xxxxxxxxxxxxxxxxxxxxxxxxxx": {
+        "description": "Cognito App Client ID from Step 11", 
+        "how_to_find": "Go to Cognito Console → User pools → App clients → Copy Client ID"
+      }
+    }
+  },
+  
+  "lambda_function_mapping": {
+    "description": "Mapping of Lambda function names to their purposes",
+    "functions": {
+      "mindsdb-rag-health-api-dev": {
+        "handler": "index.handler",
+        "description": "Public health check endpoint",
+        "vpc_enabled": false,
+        "api_gateway_path": "/health",
+        "method": "GET",
+        "auth_required": false
+      },
+      "mindsdb-rag-chat-api-dev": {
+        "handler": "lambda/chatHandler.handler", 
+        "description": "Main chat functionality with RAG",
+        "vpc_enabled": true,
+        "api_gateway_path": "/v1/chat",
+        "method": "POST",
+        "auth_required": true
+      },
+      "mindsdb-rag-documents-api-dev": {
+        "handler": "lambda/documentsHandler.handler",
+        "description": "Document upload and management",
+        "vpc_enabled": true,
+        "api_gateway_path": "/v1/documents", 
+        "method": "POST",
+        "auth_required": true
+      },
+      "mindsdb-rag-bedrock-api-dev": {
+        "handler": "lambda/bedrockHandler.handler",
+        "description": "Bedrock AI agent operations",
+        "vpc_enabled": true,
+        "api_gateway_path": "/v1/bedrock-agent/tools",
+        "method": "POST", 
+        "auth_required": true
+      },
+      "mindsdb-rag-semantic-api-dev": {
+        "handler": "lambda/semanticRetrievalHandler.handler",
+        "description": "Semantic search and ML operations",
+        "vpc_enabled": true,
+        "api_gateway_path": "/v1/semantic",
+        "method": "POST",
+        "auth_required": true
+      },
+      "mindsdb-rag-checkout-api-dev": {
+        "handler": "lambda/checkoutHandler.handler",
+        "description": "E-commerce checkout processing",
+        "vpc_enabled": true,
+        "api_gateway_path": "/v1/checkout",
+        "method": "POST",
+        "auth_required": true
+      },
+      "mindsdb-rag-bedrock-tools-dev": {
+        "handler": "lambda/bedrockToolsHandler.handler",
+        "description": "Specialized Bedrock agent tool execution",
+        "vpc_enabled": true,
+        "api_gateway_path": null,
+        "method": null,
+        "auth_required": true,
+        "note": "Called by Bedrock Agent, not directly via API Gateway"
+      },
+      "mindsdb-rag-doc-ingestion-dev": {
+        "handler": "lambda/documentIngestionHandler.handler", 
+        "description": "S3-triggered document processing",
+        "vpc_enabled": true,
+        "api_gateway_path": null,
+        "method": null,
+        "auth_required": false,
+        "note": "Triggered by S3 events and Step Functions"
+      }
+    }
+  },
+  
+  "setup_instructions": {
+    "step_1": "Replace all placeholder values with your actual AWS resource endpoints",
+    "step_2": "For each Lambda function, go to Configuration → Environment variables",
+    "step_3": "Add the appropriate variables based on the function type (VPC or public)",
+    "step_4": "Ensure VPC functions have all the MindsDB and database connection variables",
+    "step_5": "Test each function after configuration to verify connectivity"
+  }
+}

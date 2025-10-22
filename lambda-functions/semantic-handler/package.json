@@ -1,0 +1,11 @@
+{
+  "name": "semantic-handler",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "drizzle-orm": "^0.29.0",
+    "postgres": "^3.4.0",
+    "redis": "^4.6.0",
+    "axios": "^1.12.2"
+  }
+}

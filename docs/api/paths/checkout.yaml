@@ -1,0 +1,272 @@
+processCheckout:
+  post:
+    tags:
+      - Checkout
+    summary: Process secure checkout
+    description: |
+      Process a complete checkout with payment gateway integration, inventory management,
+      and automatic compensation workflows for failures.
+      
+      **Supported Payment Methods:**
+      - `stripe`: Stripe payment processing
+      - `adyen`: Adyen payment processing  
+      - `default`: Default payment processor
+      
+      **Security Features:**
+      - PII tokenization for sensitive data
+      - Multi-tenant isolation
+      - Comprehensive audit logging
+      - Automatic compensation on failures
+    operationId: processCheckout
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - merchant_id
+              - user_id
+              - session_id
+              - items
+              - payment_method
+              - shipping_address
+              - user_consent
+            properties:
+              merchant_id:
+                type: string
+                minLength: 3
+                maxLength: 100
+                example: "merchant_123"
+                description: Unique merchant identifier
+              user_id:
+                type: string
+                minLength: 1
+                maxLength: 100
+                example: "user_456"
+                description: User identifier
+              session_id:
+                type: string
+                format: uuid
+                example: "123e4567-e89b-12d3-a456-426614174000"
+                description: Session UUID
+              items:
+                type: array
+                minItems: 1
+                maxItems: 20
+                items:
+                  type: object
+                  required:
+                    - sku
+                    - quantity
+                    - price
+                    - name
+                  properties:
+                    sku:
+                      type: string
+                      minLength: 1
+                      maxLength: 100
+                      example: "PROD-001"
+                    quantity:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      example: 2
+                    price:
+                      type: number
+                      minimum: 0
+                      example: 29.99
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 200
+                      example: "Premium Widget"
+                    description:
+                      type: string
+                      maxLength: 500
+                      example: "High-quality premium widget"
+              payment_method:
+                type: string
+                enum: [stripe, adyen, default]
+                example: "stripe"
+              shipping_address:
+                $ref: '../components/schemas.yaml#/Address'
+              billing_address:
+                $ref: '../components/schemas.yaml#/Address'
+              user_consent:
+                $ref: '../components/schemas.yaml#/UserConsent'
+    responses:
+      '200':
+        description: Checkout processed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/CheckoutResponse'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+      '400':
+        description: Checkout failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+      '403':
+        description: Access denied to merchant resources
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+
+transactionStatus:
+  get:
+    tags:
+      - Checkout
+    summary: Get transaction status
+    description: |
+      Retrieve the current status of a transaction including payment status,
+      order details, and any compensation actions taken.
+    operationId: getTransactionStatus
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: transactionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+        description: Transaction UUID
+      - name: merchantId
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        example: "merchant_123"
+        description: Merchant identifier
+    responses:
+      '200':
+        description: Transaction status retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/TransactionStatus'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+      '404':
+        description: Transaction not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+      '403':
+        description: Access denied to merchant resources
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+
+cancelTransaction:
+  post:
+    tags:
+      - Checkout
+    summary: Cancel transaction with compensation
+    description: |
+      Cancel a transaction and execute compensation workflows including
+      inventory release, payment refunds, and customer notifications.
+    operationId: cancelTransaction
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: transactionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - merchantId
+              - reason
+            properties:
+              merchantId:
+                type: string
+                minLength: 3
+                maxLength: 100
+                example: "merchant_123"
+              reason:
+                type: string
+                minLength: 1
+                maxLength: 500
+                example: "Customer requested cancellation"
+    responses:
+      '200':
+        description: Transaction cancelled successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/CancellationResponse'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+
+checkoutHealth:
+  get:
+    tags:
+      - Checkout
+    summary: Checkout service health check
+    description: Health check for checkout service components
+    operationId: checkoutHealthCheck
+    security: []
+    responses:
+      '200':
+        description: Checkout service is healthy
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/HealthResponse'
+      '503':
+        description: Checkout service is unhealthy
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'

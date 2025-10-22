@@ -1,0 +1,196 @@
+openapi: 3.0.3
+info:
+  title: MindsDB RAG Assistant API
+  description: |
+    A comprehensive RAG (Retrieval-Augmented Generation) assistant API that combines semantic document search, 
+    ML-powered predictions via MindsDB, and intelligent chat responses. The system provides multi-tenant 
+    document management, PII protection, and integrated e-commerce checkout capabilities.
+    
+    ## Key Features
+    
+    - **Semantic Document Search**: Vector-based similarity search using embeddings
+    - **ML Predictions**: Integration with MindsDB for demand forecasting and recommendations
+    - **Multi-tenant Architecture**: Isolated data and operations per merchant
+    - **PII Protection**: Automatic detection and tokenization of sensitive information
+    - **E-commerce Integration**: Complete checkout flow with payment processing
+    - **Real-time Chat**: WebSocket and HTTP-based chat interactions
+    - **Comprehensive Analytics**: Detailed metrics and insights
+    
+    ## Authentication
+    
+    All endpoints require Bearer token authentication. Include your API key in the Authorization header:
+    ```
+    Authorization: Bearer your-api-key-here
+    ```
+    
+    ## Rate Limiting
+    
+    API requests are rate-limited per merchant:
+    - Standard tier: 1000 requests/hour
+    - Premium tier: 5000 requests/hour
+    - Enterprise tier: Custom limits
+    
+    ## Error Handling
+    
+    The API uses standard HTTP status codes and returns detailed error information:
+    - 400: Bad Request - Invalid request data
+    - 401: Unauthorized - Missing or invalid authentication
+    - 403: Forbidden - Access denied to resource
+    - 404: Not Found - Resource not found
+    - 429: Too Many Requests - Rate limit exceeded
+    - 500: Internal Server Error - Server-side error
+    
+    ## Data Privacy
+    
+    - All PII is automatically detected and tokenized
+    - Data is encrypted at rest and in transit
+    - Multi-tenant isolation ensures data privacy
+    - GDPR and CCPA compliant data handling
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@mindsdb-rag.com
+    url: https://docs.mindsdb-rag.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.mindsdb-rag.com/v1
+    description: Production server
+  - url: https://staging-api.mindsdb-rag.com/v1
+    description: Staging server
+  - url: http://localhost:3000/api/v1
+    description: Local development server
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token for API authentication. Include in Authorization header as:
+        `Authorization: Bearer <token>`
+
+  schemas:
+    $ref: './components/schemas.yaml'
+
+paths:
+  # Health Check
+  /health:
+    $ref: './paths/health.yaml#/health'
+  
+  /health/detailed:
+    $ref: './paths/health.yaml#/healthDetailed'
+
+  # Document Management
+  /documents:
+    $ref: './paths/documents.yaml#/documents'
+  
+  /documents/bulk:
+    $ref: './paths/documents.yaml#/documentsBulk'
+  
+  /documents/stats:
+    $ref: './paths/documents.yaml#/documentsStats'
+  
+  /documents/{documentId}:
+    $ref: './paths/documents.yaml#/documentById'
+
+  # Chat Endpoints
+  /chat:
+    $ref: './paths/chat.yaml#/chat'
+  
+  /chat/history/{sessionId}:
+    $ref: './paths/chat.yaml#/chatHistory'
+  
+  /chat/sessions/{sessionId}:
+    $ref: './paths/chat.yaml#/deleteSession'
+
+  # Session Management
+  /sessions:
+    $ref: './paths/sessions.yaml#/sessions'
+  
+  /sessions/{sessionId}:
+    $ref: './paths/sessions.yaml#/sessionById'
+  
+  /sessions/analytics:
+    $ref: './paths/sessions.yaml#/sessionAnalytics'
+
+  # Semantic Search
+  /search/semantic:
+    $ref: './paths/search.yaml#/semanticSearch'
+  
+  /search/suggestions:
+    $ref: './paths/search.yaml#/searchSuggestions'
+  
+  /search/analytics:
+    $ref: './paths/search.yaml#/searchAnalytics'
+
+  # Checkout & E-commerce
+  /checkout:
+    $ref: './paths/checkout.yaml#/checkout'
+  
+  /checkout/{transactionId}/status:
+    $ref: './paths/checkout.yaml#/checkoutStatus'
+  
+  /checkout/{transactionId}/cancel:
+    $ref: './paths/checkout.yaml#/checkoutCancel'
+
+  # Bedrock Agent
+  /bedrock-agent/chat:
+    $ref: './paths/bedrock-agent.yaml#/bedrockAgentChat'
+  
+  /bedrock-agent/sessions:
+    $ref: './paths/bedrock-agent.yaml#/bedrockAgentSessions'
+  
+  /bedrock-agent/sessions/{sessionId}:
+    $ref: './paths/bedrock-agent.yaml#/bedrockAgentSessionById'
+  
+  /bedrock-agent/sessions/{sessionId}/history:
+    $ref: './paths/bedrock-agent.yaml#/bedrockAgentSessionHistory'
+  
+  /bedrock-agent/users/{userId}/sessions:
+    $ref: './paths/bedrock-agent.yaml#/bedrockAgentUserSessions'
+  
+  /bedrock-agent/stats:
+    $ref: './paths/bedrock-agent.yaml#/bedrockAgentStats'
+  
+  /bedrock-agent/health:
+    $ref: './paths/bedrock-agent.yaml#/bedrockAgentHealth'
+  
+  /bedrock-agent/parse-intent:
+    $ref: './paths/bedrock-agent.yaml#/bedrockAgentParseIntent'
+  
+  /bedrock-agent/sessions/{sessionId}/summary:
+    $ref: './paths/bedrock-agent.yaml#/bedrockAgentSessionSummary'
+  
+  /bedrock-agent/audit/search:
+    $ref: './paths/bedrock-agent.yaml#/bedrockAgentAuditSearch'
+  
+  /bedrock-agent/compliance/report:
+    $ref: './paths/bedrock-agent.yaml#/bedrockAgentComplianceReport'
+
+tags:
+  - name: Health
+    description: System health and status endpoints
+  - name: Documents
+    description: Document management and ingestion
+  - name: Chat
+    description: Chat interactions and conversation management
+  - name: Sessions
+    description: User session management and analytics
+  - name: Search
+    description: Semantic search and query suggestions
+  - name: Checkout
+    description: E-commerce checkout and payment processing
+  - name: Bedrock Agent
+    description: AWS Bedrock Agent integration for advanced AI conversations
+
+externalDocs:
+  description: Full API Documentation
+  url: https://docs.mindsdb-rag.com

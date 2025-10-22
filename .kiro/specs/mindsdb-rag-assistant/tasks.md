@@ -1,0 +1,277 @@
+# Implementation Plan
+
+- [x] 1. Set up project structure and AWS infrastructure foundation
+  - Create directory structure for models, services, repositories, and API components
+  - Define enhanced TypeScript interfaces including PredictionResult with feature_importance, AuditLog, and updated data models
+  - Set up AWS CDK infrastructure for VPC, subnets, security groups, and IAM roles
+  - Configure AWS Secrets Manager for credentials and KMS for encryption keys
+  - _Requirements: 4.1, 4.5, 4.6_
+
+- [x] 2. Set up Aurora PostgreSQL with pgvector and caching layer
+  - [x] 2.1 Deploy Aurora PostgreSQL cluster with pgvector extension
+    - Create Aurora Serverless v2 cluster in private subnets with read replicas
+    - Write migration scripts for documents table with optimized ivfflat indexes (lists=100)
+    - Implement merchant_id partitioning and materialized views for performance
+    - _Requirements: 1.1, 4.3, 5.3_
+  - [x] 2.2 Set up ElastiCache Redis for caching layer
+    - Deploy Redis cluster in private subnets with encryption at rest and in transit
+    - Implement caching strategy with TTL policies and stale-while-revalidate pattern
+    - Create cache key structure: merchant:{merchant_id}:query_hash:{sha256(query+context)}
+    - _Requirements: 5.2, 5.6_
+  - [x] 2.3 Implement document repository with vector operations and caching
+    - Create DocumentRepository class with CRUD operations and vector similarity search
+    - Implement tenant-filtered queries with automatic merchant_id enforcement
+    - Add Redis caching layer for frequent queries with sub-10ms response times
+    - _Requirements: 1.1, 1.2, 4.1, 5.2_
+  - [ ]\* 2.4 Write unit tests for document storage and caching
+    - Test vector similarity search accuracy and tenant isolation
+    - Validate caching behavior and cache invalidation strategies
+    - _Requirements: 1.1, 4.1, 5.2_
+
+- [x] 3. Build comprehensive embedding and ingestion pipeline
+  - [x] 3.1 Create MindsDB service integration layer
+    - Implement MindsDBService class with SQL and REST API connectivity
+    - Add connection management, authentication, and error handling for MindsDB
+    - Create methods for embedding generation, predictor queries, and health checks
+    - Implement tenant isolation and merchant_id validation for all MindsDB operations
+    - _Requirements: 1.2, 1.3, 4.1, 4.5_
+  - [x] 3.2 Create MindsDB embedding service with PII protection
+    - Implement EmbeddingService class using MindsDB embedding models for text-to-vector conversion
+    - Add PII redaction and tokenization before embedding generation using PIIRedactor service
+    - Build batch processing capabilities for high throughput document processing
+    - Integrate with DocumentRepository for seamless embedding updates
+    - _Requirements: 1.1, 1.6, 4.4, 5.6_
+  - [x] 3.3 Implement document ingestion pipeline with S3 and Lambda
+    - Create S3 bucket with event notifications and Lambda triggers
+    - Build document parser for different content types with metadata extraction
+    - Implement Step Functions workflow for: S3 upload → PII sanitization → MindsDB embedding → Aurora insertion
+    - Add transaction batching for bulk updates and vector index maintenance
+    - _Requirements: 1.1, 1.6, 4.4_
+  - [x] 3.4 Build model retraining and drift detection pipeline
+    - Create ECS/EKS jobs for weekly automated retraining using historical data from RDS + S3
+    - Implement drift detection monitoring with confidence threshold alerts
+    - Build model artifact storage in S3 with versioning and MindsDB Studio integration
+    - Use Spot instances for cost-effective training workloads
+    - _Requirements: 1.4, 6.2, 5.7_
+  - [ ]\* 3.5 Write integration tests for embedding and retraining pipelines
+    - Test end-to-end document ingestion with PII redaction validation
+    - Validate model retraining triggers and artifact management
+    - _Requirements: 1.1, 1.4, 4.4_
+
+- [x] 4. Deploy MindsDB in ECS/EKS with enhanced predictors
+  - [x] 4.1 Deploy MindsDB service in ECS Fargate with auto-scaling
+    - Set up ECS Fargate tasks in private subnets with internal ALB
+    - Configure auto-scaling based on CPU usage and request rate with minimum baseline capacity
+    - Implement secure connection to Aurora PostgreSQL and S3 model artifacts
+    - Set up IAM roles for least-privilege access and Secrets Manager integration
+    - _Requirements: 1.3, 4.5, 5.5_
+  - [x] 4.2 Create enhanced semantic retrieval predictor with explainability
+    - Define and deploy semantic_retriever predictor with tenant isolation enforcement
+    - Implement SQL and REST interfaces for top-k document retrieval with grounding_pass validation
+    - Add source_uri metadata and confidence scoring for retrieved documents
+    - _Requirements: 1.2, 4.1, 6.1_
+  - [x] 4.3 Create product signals predictor with feature importance
+    - Define and deploy product_signals predictor with enhanced explainability
+    - Implement feature_importance extraction and model provenance tracking
+    - Add user context integration with demographic and behavioral signals
+    - Include model_id, model_version, and training_date in prediction responses
+    - _Requirements: 1.3, 1.4, 6.1_
+  - [x] 4.4 Build RAG engine service with circuit breakers and caching
+    - Create RAGService class that coordinates document retrieval and MindsDB predictions
+    - Implement result ranking by combined relevance and prediction scores
+    - Add Redis caching for predictor results with intelligent TTL management
+    - Build fallback mechanisms for predictor failures with heuristic ranking
+    - Integrate with DocumentRepository and MindsDBService for seamless operation
+    - _Requirements: 1.2, 1.3, 1.5, 5.2_
+  - [ ]\* 4.5 Write unit tests for MindsDB integration and circuit breakers
+    - Test predictor response parsing including feature_importance validation
+    - Validate circuit breaker behavior and fallback mechanisms
+    - Test tenant isolation enforcement in predictor calls
+    - _Requirements: 1.2, 1.3, 4.1_
+
+- [x] 5. Implement AWS Bedrock AgentCore orchestrator with DynamoDB session store
+  - [x] 5.1 Set up Bedrock AgentCore with tool registration and DynamoDB
+    - Configure AWS Bedrock AgentCore with tool definitions for MindsDB, Amazon Q, and Checkout API
+    - Set up DynamoDB table for session state with merchant_id partitioning and TTL
+    - Implement IAM roles for Bedrock to access MindsDB internal ALB and other AWS services
+    - _Requirements: 2.1, 2.4, 4.3_
+  - [x] 5.2 Create intent parsing and planning service with Amazon Q integration
+    - Implement query analysis using Bedrock AgentCore to identify user intent
+    - Build reasoning plan generation that coordinates multiple tool invocations
+    - Integrate Amazon Q for additional retrieval and grounding capabilities
+    - Add conversation context management with DynamoDB persistence
+    - _Requirements: 2.1, 2.3, 2.4_
+  - [x] 5.3 Build tool coordination system with retry and bulkheading
+    - Create tool registry with timeout configurations and health checks
+    - Implement tool selection logic based on intent, context, and tool availability
+    - Add retry mechanisms with exponential backoff and circuit breaker integration
+    - Implement bulkheading by merchant to prevent noisy neighbor effects
+    - _Requirements: 2.2, 2.7_
+  - [x] 5.4 Implement conversation state management with audit logging
+    - Create SessionManager with DynamoDB for conversation history and user context
+    - Implement audit logging to CloudWatch Logs and S3 with KMS encryption
+    - Add request_payload_hash and response_reference tracking for compliance
+    - Build session cleanup and TTL management for cost optimization
+    - _Requirements: 2.4, 4.7, 6.4_
+  - [ ]\* 5.5 Write integration tests for agent orchestration and state management
+    - Test multi-step tool coordination with MindsDB and Amazon Q
+    - Validate retry mechanisms, circuit breakers, and bulkheading
+    - Test DynamoDB session persistence and audit log generation
+    - _Requirements: 2.2, 2.7, 4.7_
+
+- [x] 6. Build response generation with Bedrock Nova LLM and grounding validation
+  - [x] 6.1 Create enhanced prompt template system with PII protection
+    - Implement PromptTemplate class with structured context injection and PII redaction
+    - Build template variations optimized for different query types and token limits
+    - Add prompt optimization for smaller LLM footprints with escalation to larger models
+    - Implement token counting and cost estimation per prompt
+    - _Requirements: 2.2, 2.5, 4.4, 5.4_
+  - [x] 6.2 Implement Bedrock Nova LLM service with cost tracking
+    - Create LLMService for Bedrock Nova model invocation with streaming support
+    - Implement comprehensive cost tracking with per-session and per-merchant attribution
+    - Add timeout handling and retry logic with simplified prompt fallbacks
+    - Build token usage monitoring and CloudWatch metrics emission
+    - _Requirements: 2.2, 5.4, 6.4_
+  - [x] 6.3 Build response grounding validation and quality scoring
+    - Implement automated fact-checking against retrieved documents with ≥85% accuracy target
+    - Add source citation with document reference numbers and grounding_pass validation
+    - Create response quality scoring with confidence metrics and hallucination detection
+    - Build template-based fallback responses for LLM failures
+    - _Requirements: 2.2, 2.5, 6.1, 6.2_
+  - [x] 6.4 Write unit tests for response generation and grounding
+    - Test prompt template rendering with PII redaction validation
+    - Validate response grounding accuracy and source attribution
+    - Test cost tracking and token usage monitoring
+    - _Requirements: 2.2, 2.5, 4.4, 5.4_
+
+- [x] 7. Implement secure checkout with Lambda and payment gateway integration
+  - [x] 7.1 Create checkout API with Lambda and payment gateway integration
+    - Build CheckoutService as Lambda function behind API Gateway
+    - Integrate with merchant payment gateways (Stripe/Adyen) using secure vaults
+    - Implement transaction confirmation and explicit user consent validation
+    - Add SNS/SQS event publishing for order processing workflows
+    - _Requirements: 3.1, 3.2_
+  - [x] 7.2 Implement transaction state management with compensation patterns
+    - Create transaction logging in RDS/DynamoDB with unique transaction IDs
+    - Build transactional compensation for payment failures with inventory rollback
+    - Implement order confirmation and receipt generation with merchant branding
+    - Add cart state persistence for retry scenarios
+    - _Requirements: 3.3, 3.4_
+  - [x] 7.3 Add comprehensive PII redaction for transaction data
+    - Implement sensitive data masking in conversation logs before persistence
+    - Create secure token management for payment information using KMS
+    - Build PII tokenization with reversible mapping stored in KMS-protected store
+    - Ensure payment tokens never appear in conversational logs or audit trails
+    - _Requirements: 3.5, 4.4_
+  - [x] 7.4 Write integration tests for checkout flow and compensation
+    - Test complete purchase workflow with mock payment processing
+    - Validate transaction rollback and compensation mechanisms
+    - Test PII redaction and secure token management
+    - _Requirements: 3.1, 3.2, 3.4, 4.4_
+
+- [x] 8. Implement comprehensive security with Cognito, WAF, and VPC isolation
+  - [x] 8.1 Set up authentication with Cognito and WAF protection
+    - Deploy Amazon Cognito for JWT-based authentication with merchant_id claims
+    - Configure AWS WAF for request filtering, IP protection, and rate limiting
+    - Implement role-based access control with IAM roles for different user types
+    - Set up API Gateway with Cognito authorizer and request validation
+    - _Requirements: 4.5, 4.6_
+  - [x] 8.2 Implement comprehensive PII protection and KMS encryption
+    - Create PIIRedactor service with tokenization using KMS-managed keys
+    - Build query and response sanitization before external LLM calls
+    - Implement reversible tokenization with secure mapping storage
+    - Add TLS 1.3 enforcement for all in-transit communications
+    - _Requirements: 4.4_
+  - [x] 8.3 Enforce strict tenant isolation with VPC and database-level controls
+    - Implement middleware for automatic merchant_id filtering in all database queries
+    - Create VPC with private subnets and security groups for least-privilege access
+    - Set up per-tenant MindsDB predictor isolation with IAM role validation
+    - Add VPC endpoints for S3 and PrivateLink for Bedrock access
+    - _Requirements: 4.1, 4.2, 4.3_
+  - [x] 8.4 Set up secrets management and credential rotation
+    - Configure AWS Secrets Manager for all service credentials with 90-day rotation
+    - Implement secure credential access via IAM roles for ECS/EKS tasks and Lambda
+    - Set up KMS key management for encryption at rest (Aurora, S3, EBS)
+    - Add CloudTrail for API and IAM activity auditing
+    - _Requirements: 4.5, 4.7_
+  - [x] 8.5 Write security tests and penetration testing
+    - Test cross-tenant data access prevention and VPC isolation
+    - Validate PII redaction and KMS encryption functionality
+    - Perform penetration testing for VPC, Secrets Manager, and IAM roles
+    - _Requirements: 4.1, 4.4, 4.6_
+
+- [x] 9. Build comprehensive monitoring with CloudWatch, Prometheus, and cost tracking
+  - [x] 9.1 Implement structured logging and metrics collection
+    - Set up structured JSON logging with merchant_id, session_id, request_id for all services
+    - Create CloudWatch custom metrics for all required metrics (retrieval.latency_ms, predict.confidence_distribution, etc.)
+    - Implement audit logging to CloudWatch Logs with S3 archival and KMS encryption
+    - Add sensitive field redaction before log persistence
+    - _Requirements: 6.1, 6.2, 6.4, 4.7_
+  - [x] 9.2 Set up Prometheus/Grafana on EKS for advanced monitoring
+    - Deploy Prometheus and Grafana on EKS for rich dashboards and custom metrics
+    - Forward CloudWatch metrics to Prometheus for unified monitoring
+    - Create operational dashboards for system health, latency, and accuracy metrics
+    - Set up MindsDB Studio integration for model-specific metrics
+    - _Requirements: 6.6_
+  - [x] 9.3 Implement comprehensive alerting with specific thresholds
+    - Create CloudWatch alarms for grounding accuracy < 85% (severity-high)
+    - Set up prediction confidence drift alerts with retrain triggers
+    - Implement cost/session > $0.05 alerts with 24h rolling window
+    - Add retrieval latency p95 > 250ms performance alerts
+    - Configure AWS Budgets with Slack/email notifications
+    - _Requirements: 6.5, 5.5, 5.4_
+  - [x] 9.4 Build detailed cost tracking and FinOps controls
+    - Implement cost_estimate_per_request metric with Bedrock token costs + MindsDB compute + DB costs
+    - Create per-session and per-merchant cost attribution and billing
+    - Build cost optimization levers (cache utilization, model size selection, spot instances)
+    - Add real-time cost monitoring with budget alerts and automatic scaling controls
+    - _Requirements: 5.4, 5.5, 6.7_
+  - [x] 9.5 Set up synthetic monitoring and regression testing
+    - Create synthetic monitoring queries every 5 minutes for latency, grounding, and accuracy
+    - Implement automated regression testing for performance and quality metrics
+    - Build business intelligence dashboards for usage analytics and conversion tracking
+    - Add human evaluation pipeline for periodic recommendation relevance scoring
+    - _Requirements: 6.6, 6.1_
+  - [ ]\* 9.6 Write monitoring integration tests and validation
+    - Test metrics collection accuracy and alert triggering mechanisms
+    - Validate cost tracking calculations and billing attribution
+    - Test synthetic monitoring and regression detection
+    - _Requirements: 6.4, 6.7_
+
+- [x] 10. Create API Gateway endpoints and integrate all AWS components
+  - [x] 10.1 Create core API routes and controllers
+    - Implement ChatController for main chat endpoint with RAGService integration
+    - Create DocumentController for document management operations
+    - Build SessionController for conversation state management
+    - Add proper request validation, error handling, and response formatting
+    - _Requirements: 2.1, 5.1, 4.6_
+  - [x] 10.2 Set up API Gateway with Cognito integration and comprehensive validation
+    - Create REST API with Cognito authorizer and JWT validation
+    - Implement request validation, WAF protection, and rate limiting per merchant
+    - Add request/response logging with correlation IDs for tracing
+    - Wire API routes to Express application
+    - _Requirements: 2.1, 5.1, 4.6_
+  - [x] 10.3 Create session management with DynamoDB integration
+    - Build session creation, retrieval, and cleanup APIs with DynamoDB backend
+    - Implement conversation history management with TTL and cost optimization
+    - Add session context persistence across multiple interactions
+    - Create session analytics and usage tracking for billing
+    - _Requirements: 2.4_
+  - [x] 10.4 Integrate all AWS components with comprehensive orchestration
+    - Wire together API Gateway → Bedrock AgentCore → MindsDB ECS → Aurora → ElastiCache
+    - Implement end-to-end request flow with latency budget enforcement (<300ms)
+    - Add comprehensive error handling with circuit breakers and fallback mechanisms
+    - Build health checks and readiness probes for all services
+    - _Requirements: 2.1, 2.2, 2.3, 5.1_
+  - [x] 10.5 Implement load balancing and auto-scaling across all tiers
+    - Configure ALB for MindsDB ECS services with health checks
+    - Set up auto-scaling policies for ECS tasks, Aurora read replicas, and ElastiCache
+    - Implement cross-AZ deployment for high availability
+    - Add blue-green deployment capabilities for zero-downtime updates
+    - _Requirements: 5.5_
+  - [x] 10.6 Write comprehensive end-to-end integration tests
+    - Test complete user journey from API Gateway to purchase completion
+    - Validate system performance under 1k concurrent users per merchant
+    - Test failover scenarios and auto-scaling behavior
+    - Validate cost targets and latency SLAs under load
+    - _Requirements: 5.1, 5.2, 6.1_

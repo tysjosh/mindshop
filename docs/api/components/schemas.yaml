@@ -1,0 +1,1267 @@
+# Common Response Schemas
+ErrorResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: false
+    error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          example: "Invalid request data"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "email"
+              message:
+                type: string
+                example: "Invalid email format"
+    timestamp:
+      type: string
+      format: date-time
+      example: "2024-01-15T10:30:00.000Z"
+    requestId:
+      type: string
+      format: uuid
+      example: "123e4567-e89b-12d3-a456-426614174000"
+
+HealthResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          example: healthy
+        components:
+          type: object
+          additionalProperties:
+            oneOf:
+              - type: boolean
+              - type: string
+        uptime:
+          type: number
+          example: 86400
+        version:
+          type: string
+          example: "1.0.0"
+    timestamp:
+      type: string
+      format: date-time
+    requestId:
+      type: string
+      format: uuid
+
+Pagination:
+  type: object
+  properties:
+    total:
+      type: integer
+      example: 150
+      description: Total number of items
+    limit:
+      type: integer
+      example: 20
+      description: Number of items per page
+    offset:
+      type: integer
+      example: 0
+      description: Number of items skipped
+    hasMore:
+      type: boolean
+      example: true
+      description: Whether there are more items available
+
+# Address Schema
+Address:
+  type: object
+  required:
+    - address_line_1
+    - city
+    - country
+    - postal_code
+  properties:
+    address_line_1:
+      type: string
+      minLength: 1
+      maxLength: 100
+      example: "123 Main Street"
+    address_line_2:
+      type: string
+      maxLength: 100
+      example: "Apt 4B"
+    city:
+      type: string
+      minLength: 1
+      maxLength: 50
+      example: "New York"
+    state:
+      type: string
+      maxLength: 50
+      example: "NY"
+    country:
+      type: string
+      minLength: 2
+      maxLength: 2
+      example: "US"
+      description: ISO 3166-1 alpha-2 country code
+    postal_code:
+      type: string
+      minLength: 1
+      maxLength: 20
+      example: "10001"
+
+# User Consent Schema
+UserConsent:
+  type: object
+  required:
+    - terms_accepted
+    - privacy_accepted
+    - consent_timestamp
+  properties:
+    terms_accepted:
+      type: boolean
+      example: true
+      description: User accepted terms and conditions
+    privacy_accepted:
+      type: boolean
+      example: true
+      description: User accepted privacy policy
+    marketing_accepted:
+      type: boolean
+      example: false
+      description: User opted in to marketing communications
+    consent_timestamp:
+      type: string
+      format: date-time
+      example: "2024-01-15T10:30:00.000Z"
+      description: When consent was given (must be recent)
+    consent_version:
+      type: string
+      example: "v1.2"
+      description: Version of terms/privacy policy accepted
+
+# Checkout Schemas
+CheckoutResponse:
+  type: object
+  properties:
+    transaction_id:
+      type: string
+      format: uuid
+      example: "123e4567-e89b-12d3-a456-426614174000"
+    status:
+      type: string
+      enum: [pending, confirmed, failed, requires_action]
+      example: "confirmed"
+    total_amount:
+      type: number
+      example: 109.97
+      description: Total amount charged
+    currency:
+      type: string
+      example: "USD"
+      description: ISO 4217 currency code
+    items:
+      type: array
+      items:
+        type: object
+        properties:
+          sku:
+            type: string
+            example: "PROD-001"
+          quantity:
+            type: integer
+            example: 2
+          price:
+            type: number
+            example: 29.99
+          subtotal:
+            type: number
+            example: 59.98
+          name:
+            type: string
+            example: "Premium Widget"
+    payment_confirmation:
+      type: string
+      example: "stripe_pi_1234567890"
+      description: Payment gateway confirmation ID
+    payment_intent_id:
+      type: string
+      example: "pi_1234567890"
+      description: Payment intent ID (for Stripe)
+    client_secret:
+      type: string
+      example: "pi_1234567890_secret_abc123"
+      description: Client secret for payment confirmation
+    estimated_delivery:
+      type: string
+      example: "2024-01-20"
+      description: Estimated delivery date
+    order_reference:
+      type: string
+      example: "ORD-merchant123-20240115-001"
+      description: Human-readable order reference
+    error_message:
+      type: string
+      example: "Payment declined by issuer"
+      description: Error message if status is failed
+    created_at:
+      type: string
+      format: date-time
+      example: "2024-01-15T10:30:00.000Z"
+
+TransactionStatus:
+  type: object
+  properties:
+    transaction_id:
+      type: string
+      format: uuid
+    merchant_id:
+      type: string
+    user_id:
+      type: string
+    session_id:
+      type: string
+      format: uuid
+    status:
+      type: string
+      enum: [pending, confirmed, failed, cancelled, refunded, compensating]
+    total_amount:
+      type: number
+    currency:
+      type: string
+    payment_method:
+      type: string
+    payment_confirmation:
+      type: string
+    order_reference:
+      type: string
+    inventory_reserved:
+      type: boolean
+    compensation_actions:
+      type: array
+      items:
+        type: object
+        properties:
+          action_id:
+            type: string
+          action_type:
+            type: string
+            enum: [inventory_release, payment_refund, order_cancel, notification_send]
+          status:
+            type: string
+            enum: [pending, completed, failed]
+          executed_at:
+            type: string
+            format: date-time
+          error_message:
+            type: string
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+    metadata:
+      type: object
+
+CancellationResponse:
+  type: object
+  properties:
+    transaction_id:
+      type: string
+      format: uuid
+    status:
+      type: string
+      enum: [cancelled, compensating]
+    compensation_workflow_id:
+      type: string
+      format: uuid
+    actions_initiated:
+      type: array
+      items:
+        type: string
+        enum: [inventory_release, payment_refund, order_cancel, notification_send]
+    estimated_completion:
+      type: string
+      format: date-time
+    cancelled_at:
+      type: string
+      format: date-time
+
+# Document Schemas
+Document:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      example: "123e4567-e89b-12d3-a456-426614174000"
+    merchantId:
+      type: string
+      example: "merchant_123"
+    sku:
+      type: string
+      example: "PROD-001"
+    title:
+      type: string
+      example: "Premium Wireless Headphones"
+    body:
+      type: string
+      example: "High-quality wireless headphones with active noise cancellation..."
+    documentType:
+      type: string
+      enum: [product, faq, policy, review]
+      example: "product"
+    metadata:
+      type: object
+      example: { "category": "electronics", "brand": "TechCorp", "price": 199.99 }
+    embedding:
+      type: array
+      items:
+        type: number
+      description: Vector embedding for semantic search (typically not returned in API responses)
+    createdAt:
+      type: string
+      format: date-time
+      example: "2024-01-15T10:30:00.000Z"
+    updatedAt:
+      type: string
+      format: date-time
+      example: "2024-01-15T10:30:00.000Z"
+    version:
+      type: integer
+      example: 1
+      description: Document version for optimistic locking
+
+BulkUploadResponse:
+  type: object
+  properties:
+    totalDocuments:
+      type: integer
+      example: 50
+      description: Total number of documents in the request
+    successfulUploads:
+      type: integer
+      example: 48
+      description: Number of successfully uploaded documents
+    failedUploads:
+      type: integer
+      example: 2
+      description: Number of failed uploads
+    results:
+      type: array
+      items:
+        type: object
+        properties:
+          index:
+            type: integer
+            example: 0
+            description: Index of document in original request
+          success:
+            type: boolean
+            example: true
+          documentId:
+            type: string
+            format: uuid
+            description: ID of created document (if successful)
+          error:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "VALIDATION_ERROR"
+              message:
+                type: string
+                example: "Title is required"
+            description: Error details (if failed)
+    processingTime:
+      type: number
+      example: 2.5
+      description: Total processing time in seconds
+
+DocumentStats:
+  type: object
+  properties:
+    totalDocuments:
+      type: integer
+      example: 1250
+    documentsByType:
+      type: object
+      properties:
+        product:
+          type: integer
+          example: 800
+        faq:
+          type: integer
+          example: 200
+        policy:
+          type: integer
+          example: 50
+        review:
+          type: integer
+          example: 200
+    totalEmbeddings:
+      type: integer
+      example: 1250
+    averageDocumentLength:
+      type: number
+      example: 450.5
+      description: Average document body length in characters
+    lastUpdated:
+      type: string
+      format: date-time
+    storageUsed:
+      type: object
+      properties:
+        documents:
+          type: string
+          example: "2.5 MB"
+        embeddings:
+          type: string
+          example: "15.2 MB"
+
+# Chat Schemas
+ChatResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: "Based on your budget of under $200, I recommend our TechCorp Wireless Pro headphones..."
+      description: AI-generated response message
+    sessionId:
+      type: string
+      format: uuid
+      example: "123e4567-e89b-12d3-a456-426614174000"
+    messageId:
+      type: string
+      format: uuid
+      example: "456e7890-e89b-12d3-a456-426614174001"
+    context:
+      type: object
+      properties:
+        retrievedDocuments:
+          type: array
+          items:
+            type: object
+            properties:
+              documentId:
+                type: string
+                format: uuid
+              title:
+                type: string
+              relevanceScore:
+                type: number
+                minimum: 0
+                maximum: 1
+                example: 0.95
+              snippet:
+                type: string
+                example: "Premium wireless headphones with active noise cancellation..."
+        predictions:
+          type: array
+          items:
+            type: object
+            properties:
+              model:
+                type: string
+                example: "demand_predictor"
+              prediction:
+                type: object
+                example: { "demand_score": 0.85, "category": "high_demand" }
+              confidence:
+                type: number
+                minimum: 0
+                maximum: 1
+                example: 0.92
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              sku:
+                type: string
+                example: "PROD-001"
+              title:
+                type: string
+                example: "TechCorp Wireless Pro"
+              price:
+                type: number
+                example: 179.99
+              relevanceScore:
+                type: number
+                example: 0.88
+              reason:
+                type: string
+                example: "Matches your budget and feature requirements"
+    metadata:
+      type: object
+      properties:
+        processingTime:
+          type: number
+          example: 1.25
+          description: Response generation time in seconds
+        tokensUsed:
+          type: integer
+          example: 450
+          description: Number of tokens used for LLM generation
+        piiDetected:
+          type: boolean
+          example: false
+          description: Whether PII was detected and tokenized
+        retrievalCount:
+          type: integer
+          example: 5
+          description: Number of documents retrieved for context
+    timestamp:
+      type: string
+      format: date-time
+      example: "2024-01-15T10:30:00.000Z"
+
+ChatMessage:
+  type: object
+  properties:
+    messageId:
+      type: string
+      format: uuid
+    sessionId:
+      type: string
+      format: uuid
+    role:
+      type: string
+      enum: [user, assistant]
+      example: "user"
+    content:
+      type: string
+      example: "What are your best wireless headphones under $200?"
+      description: Message content (PII redacted in historical messages)
+    timestamp:
+      type: string
+      format: date-time
+    metadata:
+      type: object
+      properties:
+        processingTime:
+          type: number
+        tokensUsed:
+          type: integer
+        piiRedacted:
+          type: boolean
+        retrievalContext:
+          type: array
+          items:
+            type: object
+            properties:
+              documentId:
+                type: string
+                format: uuid
+              relevanceScore:
+                type: number
+
+# Session Schemas
+Session:
+  type: object
+  properties:
+    sessionId:
+      type: string
+      format: uuid
+    merchantId:
+      type: string
+    userId:
+      type: string
+    status:
+      type: string
+      enum: [active, inactive, expired]
+    messageCount:
+      type: integer
+      example: 15
+    createdAt:
+      type: string
+      format: date-time
+    lastActivity:
+      type: string
+      format: date-time
+    expiresAt:
+      type: string
+      format: date-time
+    metadata:
+      type: object
+      properties:
+        userAgent:
+          type: string
+        ipAddress:
+          type: string
+        preferences:
+          type: object
+
+SessionAnalytics:
+  type: object
+  properties:
+    totalSessions:
+      type: integer
+      example: 1250
+    activeSessions:
+      type: integer
+      example: 45
+    averageSessionDuration:
+      type: number
+      example: 8.5
+      description: Average session duration in minutes
+    averageMessagesPerSession:
+      type: number
+      example: 12.3
+    sessionsByTimeRange:
+      type: object
+      properties:
+        last24Hours:
+          type: integer
+          example: 150
+        last7Days:
+          type: integer
+          example: 800
+        last30Days:
+          type: integer
+          example: 2500
+    topUserActions:
+      type: array
+      items:
+        type: object
+        properties:
+          action:
+            type: string
+            example: "product_search"
+          count:
+            type: integer
+            example: 450
+          percentage:
+            type: number
+            example: 36.2
+
+# Semantic Search Schemas
+SemanticSearchRequest:
+  type: object
+  required:
+    - merchantId
+    - query
+  properties:
+    merchantId:
+      type: string
+      example: "merchant_123"
+    query:
+      type: string
+      minLength: 1
+      maxLength: 500
+      example: "wireless headphones with noise cancellation"
+    filters:
+      type: object
+      properties:
+        documentType:
+          type: string
+          enum: [product, faq, policy, review]
+        sku:
+          type: string
+        category:
+          type: string
+        priceRange:
+          type: object
+          properties:
+            min:
+              type: number
+            max:
+              type: number
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 50
+      default: 10
+    threshold:
+      type: number
+      minimum: 0
+      maximum: 1
+      default: 0.7
+      description: Minimum similarity threshold for results
+
+SemanticSearchResponse:
+  type: object
+  properties:
+    query:
+      type: string
+      example: "wireless headphones with noise cancellation"
+    results:
+      type: array
+      items:
+        type: object
+        properties:
+          document:
+            $ref: '#/Document'
+          similarity:
+            type: number
+            minimum: 0
+            maximum: 1
+            example: 0.95
+            description: Cosine similarity score
+          snippet:
+            type: string
+            example: "Premium wireless headphones with active noise cancellation..."
+            description: Relevant text snippet from the document
+    totalResults:
+      type: integer
+      example: 25
+    processingTime:
+      type: number
+      example: 0.15
+      description: Search processing time in seconds
+    searchMetadata:
+      type: object
+      properties:
+        embeddingModel:
+          type: string
+          example: "text-embedding-ada-002"
+        vectorDimensions:
+          type: integer
+          example: 1536
+        indexSize:
+          type: integer
+          example: 10000
+          description: Total number of documents in the index
+
+# Bedrock Agent Schemas
+BedrockAgentSession:
+  type: object
+  properties:
+    session_id:
+      type: string
+      format: uuid
+      example: "123e4567-e89b-12d3-a456-426614174000"
+    merchant_id:
+      type: string
+      format: uuid
+      example: "456e7890-e89b-12d3-a456-426614174001"
+    user_id:
+      type: string
+      example: "user_456"
+    status:
+      type: string
+      enum: [active, inactive, expired]
+      example: "active"
+    context:
+      type: object
+      example: { "preferences": { "language": "en" }, "timezone": "UTC" }
+    message_count:
+      type: integer
+      example: 15
+    created_at:
+      type: string
+      format: date-time
+      example: "2024-01-15T10:30:00.000Z"
+    last_activity:
+      type: string
+      format: date-time
+      example: "2024-01-15T11:45:00.000Z"
+    expires_at:
+      type: string
+      format: date-time
+      example: "2024-01-16T10:30:00.000Z"
+    metadata:
+      type: object
+      properties:
+        agent_version:
+          type: string
+          example: "bedrock-agent-v1.0"
+        region:
+          type: string
+          example: "us-east-1"
+        model_id:
+          type: string
+          example: "anthropic.claude-v2"
+
+BedrockAgentMessage:
+  type: object
+  properties:
+    message_id:
+      type: string
+      format: uuid
+      example: "789e0123-e89b-12d3-a456-426614174002"
+    session_id:
+      type: string
+      format: uuid
+    role:
+      type: string
+      enum: [user, assistant, system]
+      example: "user"
+    content:
+      type: string
+      example: "What are your best wireless headphones under $200?"
+    timestamp:
+      type: string
+      format: date-time
+    intent:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "product_search"
+        confidence:
+          type: number
+          example: 0.95
+        entities:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                example: "price_range"
+              value:
+                type: string
+                example: "under $200"
+              confidence:
+                type: number
+                example: 0.92
+    metadata:
+      type: object
+      properties:
+        processing_time:
+          type: number
+          example: 1.25
+        model_version:
+          type: string
+          example: "bedrock-agent-v1.0"
+        token_count:
+          type: integer
+          example: 450
+        pii_detected:
+          type: boolean
+          example: false
+
+BedrockAgentStats:
+  type: object
+  properties:
+    merchant_id:
+      type: string
+      format: uuid
+    time_range:
+      type: string
+      example: "7d"
+    total_sessions:
+      type: integer
+      example: 1250
+    active_sessions:
+      type: integer
+      example: 45
+    total_messages:
+      type: integer
+      example: 15000
+    average_session_duration:
+      type: number
+      example: 8.5
+      description: Average session duration in minutes
+    average_messages_per_session:
+      type: number
+      example: 12.3
+    intent_distribution:
+      type: object
+      properties:
+        product_search:
+          type: integer
+          example: 450
+        customer_support:
+          type: integer
+          example: 320
+        order_inquiry:
+          type: integer
+          example: 280
+        general_question:
+          type: integer
+          example: 200
+    performance_metrics:
+      type: object
+      properties:
+        average_response_time:
+          type: number
+          example: 1.25
+          description: Average response time in seconds
+        success_rate:
+          type: number
+          example: 0.98
+          description: Percentage of successful interactions
+        error_rate:
+          type: number
+          example: 0.02
+    usage_by_time:
+      type: array
+      items:
+        type: object
+        properties:
+          timestamp:
+            type: string
+            format: date-time
+          session_count:
+            type: integer
+          message_count:
+            type: integer
+    top_user_actions:
+      type: array
+      items:
+        type: object
+        properties:
+          action:
+            type: string
+            example: "product_search"
+          count:
+            type: integer
+            example: 450
+          percentage:
+            type: number
+            example: 36.2
+
+BedrockAgentSessionSummary:
+  type: object
+  properties:
+    session_id:
+      type: string
+      format: uuid
+    basic_info:
+      $ref: '#/BedrockAgentSession'
+    conversation_summary:
+      type: object
+      properties:
+        total_messages:
+          type: integer
+          example: 25
+        user_messages:
+          type: integer
+          example: 13
+        assistant_messages:
+          type: integer
+          example: 12
+        average_response_time:
+          type: number
+          example: 1.15
+        session_duration:
+          type: number
+          example: 18.5
+          description: Session duration in minutes
+    intent_analysis:
+      type: object
+      properties:
+        primary_intents:
+          type: array
+          items:
+            type: object
+            properties:
+              intent:
+                type: string
+                example: "product_search"
+              frequency:
+                type: integer
+                example: 8
+              confidence_avg:
+                type: number
+                example: 0.92
+        intent_transitions:
+          type: array
+          items:
+            type: object
+            properties:
+              from_intent:
+                type: string
+                example: "product_search"
+              to_intent:
+                type: string
+                example: "price_inquiry"
+              count:
+                type: integer
+                example: 3
+    performance_metrics:
+      type: object
+      properties:
+        total_processing_time:
+          type: number
+          example: 28.5
+        average_message_processing:
+          type: number
+          example: 1.14
+        token_usage:
+          type: object
+          properties:
+            total_tokens:
+              type: integer
+              example: 12500
+            input_tokens:
+              type: integer
+              example: 7500
+            output_tokens:
+              type: integer
+              example: 5000
+    audit_trail:
+      type: array
+      items:
+        $ref: '#/BedrockAgentAuditEntry'
+    compliance_info:
+      type: object
+      properties:
+        pii_detected:
+          type: boolean
+          example: false
+        data_retention_policy:
+          type: string
+          example: "30_days"
+        encryption_status:
+          type: string
+          example: "encrypted"
+        audit_complete:
+          type: boolean
+          example: true
+
+BedrockAgentAuditEntry:
+  type: object
+  properties:
+    audit_id:
+      type: string
+      format: uuid
+      example: "abc12345-e89b-12d3-a456-426614174003"
+    timestamp:
+      type: string
+      format: date-time
+      example: "2024-01-15T10:30:00.000Z"
+    merchant_id:
+      type: string
+      format: uuid
+    user_id:
+      type: string
+      example: "user_456"
+    session_id:
+      type: string
+      format: uuid
+    action_type:
+      type: string
+      enum: [chat, session_create, session_delete, intent_parse, compliance_report]
+      example: "chat"
+    action_details:
+      type: object
+      properties:
+        endpoint:
+          type: string
+          example: "/api/bedrock-agent/chat"
+        method:
+          type: string
+          example: "POST"
+        request_id:
+          type: string
+          format: uuid
+        processing_time:
+          type: number
+          example: 1.25
+        status:
+          type: string
+          enum: [success, error, timeout]
+          example: "success"
+    data_classification:
+      type: object
+      properties:
+        contains_pii:
+          type: boolean
+          example: false
+        data_sensitivity:
+          type: string
+          enum: [public, internal, confidential, restricted]
+          example: "internal"
+        retention_period:
+          type: string
+          example: "30_days"
+    compliance_flags:
+      type: array
+      items:
+        type: string
+        example: "gdpr_compliant"
+    ip_address:
+      type: string
+      example: "192.168.1.1"
+    user_agent:
+      type: string
+      example: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    error_details:
+      type: object
+      properties:
+        error_code:
+          type: string
+          example: "RATE_LIMIT_EXCEEDED"
+        error_message:
+          type: string
+          example: "Too many requests"
+        stack_trace:
+          type: string
+          description: "Only included for internal debugging"
+
+BedrockAgentComplianceReport:
+  type: object
+  properties:
+    report_id:
+      type: string
+      format: uuid
+      example: "def45678-e89b-12d3-a456-426614174004"
+    merchant_id:
+      type: string
+      format: uuid
+    report_type:
+      type: string
+      enum: [summary, detailed, audit_trail]
+      example: "summary"
+    period:
+      type: object
+      properties:
+        start_date:
+          type: string
+          format: date
+          example: "2024-01-01"
+        end_date:
+          type: string
+          format: date
+          example: "2024-01-31"
+        duration_days:
+          type: integer
+          example: 31
+    generated_at:
+      type: string
+      format: date-time
+      example: "2024-02-01T09:00:00.000Z"
+    summary_metrics:
+      type: object
+      properties:
+        total_interactions:
+          type: integer
+          example: 15000
+        unique_users:
+          type: integer
+          example: 1250
+        total_sessions:
+          type: integer
+          example: 3500
+        pii_incidents:
+          type: integer
+          example: 0
+        compliance_violations:
+          type: integer
+          example: 0
+        data_retention_compliance:
+          type: number
+          example: 1.0
+          description: "Compliance rate (0-1)"
+    pii_analysis:
+      type: object
+      properties:
+        pii_detection_enabled:
+          type: boolean
+          example: true
+        total_pii_detections:
+          type: integer
+          example: 0
+        pii_types_detected:
+          type: array
+          items:
+            type: string
+            example: "email"
+        tokenization_rate:
+          type: number
+          example: 1.0
+          description: "Rate of successful PII tokenization"
+    data_governance:
+      type: object
+      properties:
+        encryption_status:
+          type: string
+          enum: [fully_encrypted, partially_encrypted, not_encrypted]
+          example: "fully_encrypted"
+        backup_compliance:
+          type: boolean
+          example: true
+        access_control_compliance:
+          type: boolean
+          example: true
+        audit_trail_complete:
+          type: boolean
+          example: true
+    regulatory_compliance:
+      type: object
+      properties:
+        gdpr_compliant:
+          type: boolean
+          example: true
+        ccpa_compliant:
+          type: boolean
+          example: true
+        hipaa_compliant:
+          type: boolean
+          example: false
+        sox_compliant:
+          type: boolean
+          example: true
+    recommendations:
+      type: array
+      items:
+        type: object
+        properties:
+          category:
+            type: string
+            enum: [security, privacy, performance, compliance]
+            example: "security"
+          priority:
+            type: string
+            enum: [low, medium, high, critical]
+            example: "medium"
+          description:
+            type: string
+            example: "Consider implementing additional rate limiting for high-volume users"
+          action_required:
+            type: boolean
+            example: false
+    audit_summary:
+      type: object
+      properties:
+        total_audit_entries:
+          type: integer
+          example: 45000
+        successful_operations:
+          type: integer
+          example: 44100
+        failed_operations:
+          type: integer
+          example: 900
+        error_rate:
+          type: number
+          example: 0.02
+    file_attachments:
+      type: array
+      items:
+        type: object
+        properties:
+          filename:
+            type: string
+            example: "detailed_audit_log.csv"
+          file_type:
+            type: string
+            example: "text/csv"
+          size_bytes:
+            type: integer
+            example: 2048576
+          download_url:
+            type: string
+            example: "https://api.example.com/reports/download/abc123"
+          expires_at:
+            type: string
+            format: date-time

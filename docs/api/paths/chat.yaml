@@ -1,0 +1,311 @@
+chat:
+  post:
+    tags:
+      - Chat
+    summary: Send chat message
+    description: |
+      Send a message to the AI assistant and receive a response with RAG-enhanced content.
+      The system performs semantic search on documents, generates predictions via MindsDB,
+      and provides contextually relevant responses.
+      
+      **Features:**
+      - Semantic document retrieval
+      - ML-powered predictions
+      - PII protection and tokenization
+      - Multi-tenant isolation
+      - Comprehensive audit logging
+    operationId: sendChatMessage
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - merchantId
+              - sessionId
+              - message
+            properties:
+              merchantId:
+                type: string
+                minLength: 3
+                maxLength: 100
+                example: "merchant_123"
+                description: Merchant identifier for multi-tenant isolation
+              sessionId:
+                type: string
+                format: uuid
+                example: "123e4567-e89b-12d3-a456-426614174000"
+                description: Session UUID for conversation continuity
+              message:
+                type: string
+                minLength: 1
+                maxLength: 2000
+                example: "What are your best wireless headphones under $200?"
+                description: User message (PII will be automatically detected and tokenized)
+              context:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                    example: "user_456"
+                  userPreferences:
+                    type: object
+                    example: { "priceRange": "100-200", "category": "electronics" }
+                  conversationHistory:
+                    type: array
+                    maxItems: 10
+                    items:
+                      type: object
+                      properties:
+                        role:
+                          type: string
+                          enum: [user, assistant]
+                        content:
+                          type: string
+                        timestamp:
+                          type: string
+                          format: date-time
+              options:
+                type: object
+                properties:
+                  includeRecommendations:
+                    type: boolean
+                    default: true
+                    description: Include product recommendations in response
+                  maxDocuments:
+                    type: integer
+                    minimum: 1
+                    maximum: 20
+                    default: 5
+                    description: Maximum number of documents to retrieve for context
+                  temperature:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                    default: 0.7
+                    description: AI response creativity (0 = deterministic, 1 = creative)
+    responses:
+      '200':
+        description: Chat response generated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/ChatResponse'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+      '400':
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+      '429':
+        description: Rate limit exceeded
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+      '403':
+        description: Access denied to merchant resources
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+
+chatHistory:
+  get:
+    tags:
+      - Chat
+    summary: Get chat session history
+    description: |
+      Retrieve the conversation history for a specific session.
+      PII in historical messages is automatically redacted for security.
+    operationId: getChatHistory
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+      - name: merchantId
+        in: query
+        required: true
+        schema:
+          type: string
+        example: "merchant_123"
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+        example: 50
+        description: Maximum number of messages to return
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        example: 0
+        description: Number of messages to skip
+      - name: includeContext
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+        example: false
+        description: Include retrieval context and predictions in response
+    responses:
+      '200':
+        description: Chat history retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    sessionId:
+                      type: string
+                      format: uuid
+                    messages:
+                      type: array
+                      items:
+                        $ref: '../components/schemas.yaml#/ChatMessage'
+                    pagination:
+                      $ref: '../components/schemas.yaml#/Pagination'
+                    sessionMetadata:
+                      type: object
+                      properties:
+                        createdAt:
+                          type: string
+                          format: date-time
+                        lastActivity:
+                          type: string
+                          format: date-time
+                        messageCount:
+                          type: integer
+                        userId:
+                          type: string
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+      '404':
+        description: Session not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+      '403':
+        description: Access denied to merchant resources
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+
+deleteSession:
+  delete:
+    tags:
+      - Chat
+    summary: Delete chat session
+    description: |
+      Permanently delete a chat session and all associated conversation history.
+      This action cannot be undone.
+    operationId: deleteChatSession
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - merchantId
+            properties:
+              merchantId:
+                type: string
+                example: "merchant_123"
+              reason:
+                type: string
+                maxLength: 500
+                example: "User requested data deletion"
+                description: Reason for session deletion (for audit purposes)
+    responses:
+      '200':
+        description: Session deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "Session deleted successfully"
+                    sessionId:
+                      type: string
+                      format: uuid
+                    deletedAt:
+                      type: string
+                      format: date-time
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+      '404':
+        description: Session not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+      '403':
+        description: Access denied to merchant resources
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'

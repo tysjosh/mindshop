@@ -1,0 +1,66 @@
+health:
+  get:
+    tags:
+      - Health
+    summary: System health check
+    description: |
+      Comprehensive health check for all system components including database, 
+      cache, external services, and application health.
+    operationId: healthCheck
+    security: []  # No authentication required
+    responses:
+      '200':
+        description: System is healthy
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                      enum: [healthy, degraded, unhealthy]
+                      example: healthy
+                    components:
+                      type: object
+                      properties:
+                        database:
+                          type: boolean
+                          example: true
+                        cache:
+                          type: boolean
+                          example: true
+                        vectorIndex:
+                          type: boolean
+                          example: true
+                        embeddingService:
+                          type: string
+                          example: healthy
+                        paymentGateway:
+                          type: string
+                          example: available
+                    uptime:
+                      type: number
+                      example: 86400
+                    version:
+                      type: string
+                      example: "1.0.0"
+                timestamp:
+                  type: string
+                  format: date-time
+                  example: "2024-01-15T10:30:00.000Z"
+                requestId:
+                  type: string
+                  format: uuid
+                  example: "123e4567-e89b-12d3-a456-426614174000"
+      '503':
+        description: System is unhealthy
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'

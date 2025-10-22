@@ -1,0 +1,28 @@
+{
+  "name": "mindsdb-rag-api-docs",
+  "version": "1.0.0",
+  "description": "OpenAPI documentation for MindsDB RAG Assistant API",
+  "scripts": {
+    "validate": "node validate.js",
+    "serve": "swagger-ui-serve openapi.yaml",
+    "build": "redoc-cli build openapi.yaml --output dist/index.html",
+    "generate-clients": "npm run generate:typescript && npm run generate:python",
+    "generate:typescript": "openapi-generator-cli generate -i openapi.yaml -g typescript-axios -o clients/typescript",
+    "generate:python": "openapi-generator-cli generate -i openapi.yaml -g python -o clients/python"
+  },
+  "devDependencies": {
+    "js-yaml": "^4.1.0",
+    "redoc-cli": "^0.13.21",
+    "swagger-ui-serve": "^0.1.0",
+    "@openapitools/openapi-generator-cli": "^2.7.0"
+  },
+  "keywords": [
+    "openapi",
+    "api-documentation",
+    "mindsdb",
+    "rag",
+    "swagger"
+  ],
+  "author": "MindsDB RAG Team",
+  "license": "MIT"
+}

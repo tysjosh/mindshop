@@ -1,0 +1,870 @@
+openapi: 3.0.1
+info:
+  title: MindsDB REST API (extracted)
+  description: >
+    OpenAPI description generated from the uploaded MindsDB REST API PDF.
+    Covers authentication, Connect (databases/tables/files), Unify (projects/views/jobs/knowledge_bases/agents),
+    and Respond (SQL query, agents completions). Source: uploaded mindsdb-APIs.pdf.
+  version: "1.0.0"
+servers:
+  - url: http://127.0.0.1:47334/api
+    description: MindsDB local deployments (default)
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+    Database:
+      type: object
+      properties:
+        name:
+          type: string
+        engine:
+          type: string
+          description: Handler used to create this database (e.g. postgres)
+        type:
+          type: string
+          description: Type of database (data | project | system)
+    DatabaseCreate:
+      type: object
+      properties:
+        database:
+          type: object
+          properties:
+            name:
+              type: string
+            engine:
+              type: string
+            parameters:
+              type: object
+              description: Parameters used to connect to your data source (user, password, host, port, database, etc.)
+    Table:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          description: Type of table (data | view)
+    TableCreate:
+      type: object
+      properties:
+        table:
+          type: object
+          properties:
+            name:
+              type: string
+            select:
+              type: string
+              description: SELECT statement to create the table from
+            replace:
+              type: boolean
+              description: Whether to delete a pre-existing table before creating it
+    Project:
+      type: object
+      properties:
+        name:
+          type: string
+    View:
+      type: object
+      properties:
+        name:
+          type: string
+        query:
+          type: string
+          description: SELECT query used to create the view
+    File:
+      type: object
+      properties:
+        columns:
+          type: array
+          items:
+            type: string
+        name:
+          type: string
+        row_count:
+          type: integer
+    Job:
+      type: object
+      properties:
+        name:
+          type: string
+        query:
+          type: string
+          description: Tasks to be executed by the job
+        if_query:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        schedule_str:
+          type: string
+    KnowledgeBaseCreate:
+      type: object
+      properties:
+        knowledge_base:
+          type: object
+          properties:
+            name:
+              type: string
+            storage:
+              type: object
+              properties:
+                database:
+                  type: string
+                table:
+                  type: string
+            embedding_model:
+              type: object
+              properties:
+                provider:
+                  type: string
+                model_name:
+                  type: string
+                api_key:
+                  type: string
+            reranking_model:
+              type: object
+              properties:
+                provider:
+                  type: string
+                model_name:
+                  type: string
+                api_key:
+                  type: string
+            content_columns:
+              type: array
+              items:
+                type: string
+            metadata_columns:
+              type: array
+              items:
+                type: string
+            id_column:
+              type: string
+    KBInsert:
+      type: object
+      properties:
+        knowledge_base:
+          type: object
+          properties:
+            query:
+              type: string
+            rows:
+              type: array
+              items:
+                type: object
+            files:
+              type: array
+              items:
+                type: string
+            urls:
+              type: array
+              items:
+                type: string
+            limit:
+              type: integer
+            crawl_depth:
+              type: integer
+            filters:
+              type: object
+    QueryRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+    QueryResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          description: table | error | ok
+        column_names:
+          type: array
+          items:
+            type: string
+        data:
+          type: array
+          items:
+            type: array
+            items:
+              type: object
+        context:
+          type: object
+    AgentListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        project_id:
+          type: integer
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        data:
+          type: object
+        model:
+          type: object
+        prompt_template:
+          type: string
+
+paths:
+  /login:
+    post:
+      summary: Authenticate and receive a token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Returns token in response body (string or JSON containing token)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /sql/query:
+    post:
+      summary: Execute a SQL query (Query Respond endpoint)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueryRequest"
+            example:
+              query: "SELECT * FROM example_db.demo_data.home_rentals LIMIT 10;"
+      responses:
+        "200":
+          description: Query result (table / error / ok)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueryResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /databases:
+    get:
+      summary: List data sources
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Array of databases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Database"
+    post:
+      summary: Create / connect a data source
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DatabaseCreate"
+      responses:
+        "200":
+          description: Created database
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Database"
+        "400":
+          $ref: "#/components/schemas/Error"
+  /databases/{databaseName}:
+    parameters:
+      - name: databaseName
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Name of existing database
+    get:
+      summary: Get a data source
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Database info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Database"
+        "404":
+          description: Database not found
+    put:
+      summary: Update a data source
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DatabaseCreate"
+      responses:
+        "200":
+          description: Database updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Database"
+    delete:
+      summary: Remove a data source
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Success (empty)
+        "404":
+          description: Database not found
+  /databases/{databaseName}/tables:
+    parameters:
+      - name: databaseName
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: List tables in a database
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Array of tables
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Table"
+    post:
+      summary: Create a table (from SELECT)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TableCreate"
+      responses:
+        "200":
+          description: Table created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Table"
+  /databases/{databaseName}/tables/{tableName}:
+    parameters:
+      - name: databaseName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: tableName
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get a table (SELECT / metadata)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Table info or query result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Table"
+        "404":
+          description: Table or database not found
+    delete:
+      summary: Delete a table
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Successfully deleted
+        "404":
+          description: Table or database not found
+  /projects:
+    get:
+      summary: List projects
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Array of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+  /projects/{projectName}:
+    parameters:
+      - name: projectName
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get a project
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Project info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "404":
+          description: Project not found
+  /projects/{projectName}/views:
+    parameters:
+      - name: projectName
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: List views in project
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Array of views
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/View"
+    post:
+      summary: Create a view
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                view:
+                  $ref: "#/components/schemas/View"
+      responses:
+        "200":
+          description: Created view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/View"
+  /projects/{projectName}/views/{viewName}:
+    parameters:
+      - name: projectName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: viewName
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get a view
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: View data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/View"
+    put:
+      summary: Update a view
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                view:
+                  $ref: "#/components/schemas/View"
+      responses:
+        "200":
+          description: View updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/View"
+    delete:
+      summary: Delete a view
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Successfully deleted
+        "404":
+          description: View or project not found
+  /files:
+    get:
+      summary: List uploaded files
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Array of uploaded files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/File"
+  /files/{fileName}:
+    parameters:
+      - name: fileName
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Upload a file (multipart)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                original_file_name:
+                  type: string
+      responses:
+        "200":
+          description: File processed; schema with columns/name/row_count returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/File"
+    delete:
+      summary: Remove an uploaded file
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Successfully deleted
+        "500":
+          description: Server error
+  /projects/{projectName}/knowledge_bases:
+    parameters:
+      - name: projectName
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Create a knowledge base under a project
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KnowledgeBaseCreate"
+      responses:
+        "200":
+          description: Created knowledge base (detailed object)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  project_id:
+                    type: integer
+                  vector_database:
+                    type: string
+                  vector_database_table:
+                    type: string
+                  created_at:
+                    type: string
+                  updated_at:
+                    type: string
+    get:
+      summary: List knowledge bases in a project
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Array of knowledge bases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+  /projects/{projectName}/knowledge_bases/{knowledgeBaseName}:
+    parameters:
+      - name: projectName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: knowledgeBaseName
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Insert data into a knowledge base (rows/files/urls/query)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KBInsert"
+      responses:
+        "200":
+          description: OK (200)
+    get:
+      summary: Get knowledge base details
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Knowledge base object
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      summary: Delete a knowledge base
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Deleted (200)
+  /projects/{projectName}/jobs:
+    parameters:
+      - name: projectName
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Create a job in a project
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Job"
+      responses:
+        "200":
+          description: Job created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+    get:
+      summary: List jobs in a project
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Array of jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Job"
+  /projects/{projectName}/jobs/{jobName}:
+    parameters:
+      - name: projectName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: jobName
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get a job by name
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Job object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+  /projects/{projectName}/agents:
+    parameters:
+      - name: projectName
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: List agents in a project
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Array of agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AgentListItem"
+  /projects/{projectName}/agents/{agentName}/completions:
+    parameters:
+      - name: projectName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: agentName
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Query an agent for completions (non-stream)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        "200":
+          description: Completion result (answer)
+          content:
+            application/json:
+              schema:
+                type: object
+  /projects/{projectName}/agents/{agentName}/completions/stream:
+    parameters:
+      - name: projectName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: agentName
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Query an agent and stream intermediate thoughts + final answer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        "200":
+          description: Streamed completions (server-sent events / chunked)
+          content:
+            application/json:
+              schema:
+                type: object
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: auth
+    description: Authentication endpoints
+  - name: databases
+    description: Data source (connect) endpoints
+  - name: projects
+    description: Project-level endpoints (views, jobs, agents, knowledge_bases)
+  - name: files
+    description: Upload / list / remove files
+  - name: query
+    description: Execute SQL / KB queries

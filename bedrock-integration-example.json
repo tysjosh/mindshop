@@ -1,0 +1,9 @@
+{
+  "awsAccessKeyId": "AKIATIR247KSMNH5EDMP",
+  "awsSecretAccessKey": "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",
+  "awsRegion": "us-east-1",
+  "modelId": "anthropic.claude-sonnet-4-20250514-v1:0",
+  "mode": "default",
+  "maxTokens": 4000,
+  "temperature": 0.1
+}

@@ -1,0 +1,770 @@
+bedrockAgentChat:
+  post:
+    tags:
+      - Bedrock Agent
+    summary: Process chat request through Bedrock Agent
+    description: |
+      Send a chat request to AWS Bedrock Agent for AI-powered responses.
+      This endpoint provides advanced conversational AI capabilities with
+      context awareness and session management.
+    operationId: bedrockAgentChat
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - query
+              - merchant_id
+              - user_id
+            properties:
+              query:
+                type: string
+                minLength: 1
+                maxLength: 2000
+                example: "What are your best wireless headphones under $200?"
+                description: User query to process
+              merchant_id:
+                type: string
+                format: uuid
+                example: "123e4567-e89b-12d3-a456-426614174000"
+                description: Merchant identifier
+              user_id:
+                type: string
+                example: "user_456"
+                description: User identifier
+              session_id:
+                type: string
+                format: uuid
+                example: "456e7890-e89b-12d3-a456-426614174001"
+                description: Optional session ID for conversation continuity
+              user_context:
+                type: object
+                example: { "preferences": { "category": "electronics" }, "location": "US" }
+                description: Additional user context for personalization
+    responses:
+      '200':
+        description: Chat response generated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    response:
+                      type: string
+                      example: "Based on your budget, I recommend our TechCorp Wireless Pro headphones..."
+                    session_id:
+                      type: string
+                      format: uuid
+                    message_id:
+                      type: string
+                      format: uuid
+                    context:
+                      type: object
+                      properties:
+                        intent:
+                          type: string
+                          example: "product_search"
+                        confidence:
+                          type: number
+                          example: 0.95
+                        entities:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                                example: "price_range"
+                              value:
+                                type: string
+                                example: "under $200"
+                    metadata:
+                      type: object
+                      properties:
+                        processing_time:
+                          type: number
+                          example: 1.25
+                        model_version:
+                          type: string
+                          example: "bedrock-agent-v1.0"
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+      '400':
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+      '429':
+        description: Rate limit exceeded (30 requests/minute)
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+
+bedrockAgentSessions:
+  post:
+    tags:
+      - Bedrock Agent
+    summary: Create new Bedrock Agent session
+    description: |
+      Create a new conversation session for Bedrock Agent interactions.
+      Sessions maintain conversation context and user preferences.
+    operationId: createBedrockAgentSession
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - merchant_id
+              - user_id
+            properties:
+              merchant_id:
+                type: string
+                format: uuid
+                example: "123e4567-e89b-12d3-a456-426614174000"
+              user_id:
+                type: string
+                example: "user_456"
+              context:
+                type: object
+                example: { "preferences": { "language": "en" }, "timezone": "UTC" }
+                description: Initial session context
+    responses:
+      '201':
+        description: Session created successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/BedrockAgentSession'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+
+bedrockAgentSessionById:
+  get:
+    tags:
+      - Bedrock Agent
+    summary: Get Bedrock Agent session details
+    description: Retrieve detailed information about a specific Bedrock Agent session
+    operationId: getBedrockAgentSession
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+    responses:
+      '200':
+        description: Session retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/BedrockAgentSession'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+      '404':
+        description: Session not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+
+  delete:
+    tags:
+      - Bedrock Agent
+    summary: Clear Bedrock Agent session
+    description: |
+      Clear a Bedrock Agent session and its conversation history.
+      This action cannot be undone.
+    operationId: clearBedrockAgentSession
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - merchant_id
+            properties:
+              merchant_id:
+                type: string
+                format: uuid
+                example: "123e4567-e89b-12d3-a456-426614174000"
+    responses:
+      '200':
+        description: Session cleared successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "Session cleared successfully"
+                    session_id:
+                      type: string
+                      format: uuid
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+
+bedrockAgentSessionHistory:
+  get:
+    tags:
+      - Bedrock Agent
+    summary: Get Bedrock Agent session conversation history
+    description: |
+      Retrieve the complete conversation history for a Bedrock Agent session
+      with message details and context information.
+    operationId: getBedrockAgentSessionHistory
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+    responses:
+      '200':
+        description: Session history retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    session_id:
+                      type: string
+                      format: uuid
+                    messages:
+                      type: array
+                      items:
+                        $ref: '../components/schemas.yaml#/BedrockAgentMessage'
+                    pagination:
+                      $ref: '../components/schemas.yaml#/Pagination'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+
+bedrockAgentUserSessions:
+  get:
+    tags:
+      - Bedrock Agent
+    summary: Get user's Bedrock Agent sessions
+    description: Retrieve all Bedrock Agent sessions for a specific user
+    operationId: getBedrockAgentUserSessions
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+        example: "user_456"
+      - name: merchant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [active, inactive, expired]
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    responses:
+      '200':
+        description: User sessions retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    user_id:
+                      type: string
+                    sessions:
+                      type: array
+                      items:
+                        $ref: '../components/schemas.yaml#/BedrockAgentSession'
+                    pagination:
+                      $ref: '../components/schemas.yaml#/Pagination'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+
+bedrockAgentStats:
+  get:
+    tags:
+      - Bedrock Agent
+    summary: Get Bedrock Agent session statistics
+    description: |
+      Retrieve comprehensive statistics and analytics for Bedrock Agent
+      sessions and interactions for a merchant.
+    operationId: getBedrockAgentStats
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: timeRange
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [24h, 7d, 30d, 90d]
+          default: "7d"
+      - name: groupBy
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [hour, day, week]
+          default: "day"
+    responses:
+      '200':
+        description: Statistics retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/BedrockAgentStats'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+
+bedrockAgentHealth:
+  get:
+    tags:
+      - Bedrock Agent
+    summary: Bedrock Agent health check
+    description: Check the health and availability of Bedrock Agent services
+    operationId: bedrockAgentHealth
+    responses:
+      '200':
+        description: Service is healthy
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                      enum: [healthy, degraded, unhealthy]
+                      example: "healthy"
+                    bedrock_agent:
+                      type: object
+                      properties:
+                        available:
+                          type: boolean
+                          example: true
+                        region:
+                          type: string
+                          example: "us-east-1"
+                        model_version:
+                          type: string
+                          example: "bedrock-agent-v1.0"
+                        latency_ms:
+                          type: number
+                          example: 150
+                    uptime:
+                      type: number
+                      example: 86400
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+
+bedrockAgentParseIntent:
+  post:
+    tags:
+      - Bedrock Agent
+    summary: Parse user intent (debugging/testing)
+    description: |
+      Parse and analyze user intent from a query for debugging and testing purposes.
+      This endpoint helps understand how the Bedrock Agent interprets user requests.
+    operationId: parseBedrockAgentIntent
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - query
+              - merchant_id
+            properties:
+              query:
+                type: string
+                minLength: 1
+                maxLength: 2000
+                example: "I want to buy wireless headphones under $200"
+              merchant_id:
+                type: string
+                format: uuid
+                example: "123e4567-e89b-12d3-a456-426614174000"
+              user_context:
+                type: object
+                example: { "location": "US", "preferences": { "brand": "Sony" } }
+    responses:
+      '200':
+        description: Intent parsed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    intent:
+                      type: string
+                      example: "product_search"
+                    confidence:
+                      type: number
+                      example: 0.95
+                    entities:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                            example: "product_category"
+                          value:
+                            type: string
+                            example: "wireless headphones"
+                          confidence:
+                            type: number
+                            example: 0.92
+                    sentiment:
+                      type: object
+                      properties:
+                        label:
+                          type: string
+                          enum: [positive, negative, neutral]
+                          example: "positive"
+                        score:
+                          type: number
+                          example: 0.85
+                    processing_time:
+                      type: number
+                      example: 0.25
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+
+bedrockAgentSessionSummary:
+  get:
+    tags:
+      - Bedrock Agent
+    summary: Get detailed session summary with audit information
+    description: |
+      Retrieve a comprehensive summary of a Bedrock Agent session including
+      audit trails, performance metrics, and detailed interaction analysis.
+    operationId: getBedrockAgentSessionSummary
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: Session summary retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/BedrockAgentSessionSummary'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+
+bedrockAgentAuditSearch:
+  get:
+    tags:
+      - Bedrock Agent
+    summary: Search audit entries
+    description: |
+      Search and filter audit entries for Bedrock Agent interactions
+      for compliance and monitoring purposes.
+    operationId: searchBedrockAgentAudit
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: user_id
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: session_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: action_type
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [chat, session_create, session_delete, intent_parse]
+      - name: start_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: end_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+    responses:
+      '200':
+        description: Audit entries retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    entries:
+                      type: array
+                      items:
+                        $ref: '../components/schemas.yaml#/BedrockAgentAuditEntry'
+                    pagination:
+                      $ref: '../components/schemas.yaml#/Pagination'
+                    filters:
+                      type: object
+                      description: Applied filters for the search
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+
+bedrockAgentComplianceReport:
+  post:
+    tags:
+      - Bedrock Agent
+    summary: Generate compliance report
+    description: |
+      Generate a comprehensive compliance report for Bedrock Agent
+      interactions within a specified time period.
+    operationId: generateBedrockAgentComplianceReport
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - merchant_id
+              - start_date
+              - end_date
+            properties:
+              merchant_id:
+                type: string
+                format: uuid
+                example: "123e4567-e89b-12d3-a456-426614174000"
+              start_date:
+                type: string
+                format: date
+                example: "2024-01-01"
+              end_date:
+                type: string
+                format: date
+                example: "2024-01-31"
+              report_type:
+                type: string
+                enum: [summary, detailed, audit_trail]
+                default: "summary"
+              include_pii_analysis:
+                type: boolean
+                default: true
+    responses:
+      '200':
+        description: Compliance report generated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/BedrockAgentComplianceReport'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid

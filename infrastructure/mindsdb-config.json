@@ -1,0 +1,51 @@
+{
+  "api": {
+    "http": {
+      "host": "0.0.0.0",
+      "port": 47334
+    },
+    "mysql": {
+      "host": "0.0.0.0",
+      "port": 47335,
+      "user": "mindsdb",
+      "password": "",
+      "database": "mindsdb",
+      "ssl": false
+    }
+  },
+  "config_version": "1.4",
+  "storage_dir": "/opt/mindsdb/storage",
+  "log": {
+    "level": {
+      "console": "INFO",
+      "file": "INFO"
+    }
+  },
+  "debug": false,
+  "integrations": {
+    "default_postgres": {
+      "enabled": true,
+      "host": "${MINDSDB_DB_SERVICE_HOST}",
+      "port": "${MINDSDB_DB_SERVICE_PORT}",
+      "user": "${MINDSDB_DB_SERVICE_USER}",
+      "password": "${MINDSDB_DB_SERVICE_PASSWORD}",
+      "database": "${MINDSDB_DB_SERVICE_DATABASE}",
+      "publish": true,
+      "type": "postgres"
+    }
+  },
+  "auth": {
+    "http_auth_enabled": false,
+    "username": "mindsdb",
+    "password": ""
+  },
+  "cache": {
+    "type": "redis",
+    "params": {
+      "host": "${REDIS_HOST}",
+      "port": "${REDIS_PORT}",
+      "db": 0,
+      "ssl": true
+    }
+  }
+}

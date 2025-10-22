@@ -1,0 +1,26 @@
+{
+  "name": "mindsdb-rag-infrastructure",
+  "version": "1.0.0",
+  "description": "AWS CDK infrastructure for MindsDB RAG Assistant",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "vitest --run",
+    "cdk": "cdk",
+    "deploy": "cdk deploy",
+    "destroy": "cdk destroy",
+    "synth": "cdk synth",
+    "diff": "cdk diff"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.100.0",
+    "constructs": "^10.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.20",
+    "aws-cdk": "^2.100.0",
+    "typescript": "^5.1.6",
+    "vitest": "^0.34.0"
+  }
+}

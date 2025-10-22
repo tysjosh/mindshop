@@ -1,0 +1,458 @@
+documents:
+  post:
+    tags:
+      - Documents
+    summary: Create a new document
+    description: |
+      Create a new document with automatic vector embedding generation for semantic search.
+      Supports various document types including products, FAQs, policies, and reviews.
+    operationId: createDocument
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - merchantId
+              - title
+              - body
+              - documentType
+            properties:
+              merchantId:
+                type: string
+                minLength: 3
+                maxLength: 100
+                example: "merchant_123"
+              sku:
+                type: string
+                maxLength: 100
+                example: "PROD-001"
+                description: Product SKU (optional, for product documents)
+              title:
+                type: string
+                minLength: 1
+                maxLength: 200
+                example: "Premium Wireless Headphones"
+              body:
+                type: string
+                minLength: 1
+                maxLength: 10000
+                example: "High-quality wireless headphones with noise cancellation..."
+              documentType:
+                type: string
+                enum: [product, faq, policy, review]
+                example: "product"
+              metadata:
+                type: object
+                example: { "category": "electronics", "brand": "TechCorp" }
+                description: Additional metadata for the document
+    responses:
+      '201':
+        description: Document created successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/Document'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+      '400':
+        description: Invalid request data
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+      '403':
+        description: Access denied to merchant resources
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+
+documentById:
+  get:
+    tags:
+      - Documents
+    summary: Get document by ID
+    description: Retrieve a specific document by its ID
+    operationId: getDocument
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        example: "123e4567-e89b-12d3-a456-426614174000"
+      - name: merchantId
+        in: query
+        required: true
+        schema:
+          type: string
+        example: "merchant_123"
+    responses:
+      '200':
+        description: Document retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/Document'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+      '404':
+        description: Document not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'
+  
+  put:
+    tags:
+      - Documents
+    summary: Update document
+    description: |
+      Update an existing document. If title or body is changed, 
+      vector embeddings will be automatically regenerated.
+    operationId: updateDocument
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: merchantId
+        in: query
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+                minLength: 1
+                maxLength: 200
+              body:
+                type: string
+                minLength: 1
+                maxLength: 10000
+              metadata:
+                type: object
+    responses:
+      '200':
+        description: Document updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                data:
+                  $ref: '../components/schemas.yaml#/Document'
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+  
+  delete:
+    tags:
+      - Documents
+    summary: Delete document
+    description: Permanently delete a document and its vector embeddings
+    operationId: deleteDocument
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - merchantId
+            properties:
+              merchantId:
+                type: string
+                example: "merchant_123"
+    responses:
+      '200':
+        description: Document deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "Document deleted successfully"
+                    documentId:
+                      type: string
+                      format: uuidsea
+rchDocuments:
+  get:
+    tags:
+      - Documents
+    summary: Search documents
+    description: |
+      Search documents using semantic vector search or traditional text search.
+      When a query is provided, semantic search is performed using vector embeddings.
+      Without a query, returns filtered document listings.
+    operationId: searchDocuments
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchantId
+        in: query
+        required: true
+        schema:
+          type: string
+        example: "merchant_123"
+      - name: query
+        in: query
+        required: false
+        schema:
+          type: string
+        example: "wireless headphones with noise cancellation"
+        description: Search query for semantic search
+      - name: documentType
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [product, faq, policy, review]
+        example: "product"
+      - name: sku
+        in: query
+        required: false
+        schema:
+          type: string
+        example: "PROD-001"
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        example: 20
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        example: 0
+    responses:
+      '200':
+        description: Documents retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    documents:
+                      type: array
+                      items:
+                        $ref: '../components/schemas.yaml#/Document'
+                    pagination:
+                      $ref: '../components/schemas.yaml#/Pagination'
+                    searchParams:
+                      type: object
+                      properties:
+                        merchantId:
+                          type: string
+                        query:
+                          type: string
+                        documentType:
+                          type: string
+                        sku:
+                          type: string
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+                  format: uuid
+
+bulkUpload:
+  post:
+    tags:
+      - Documents
+    summary: Bulk upload documents
+    description: |
+      Upload multiple documents in a single request (maximum 100 documents).
+      Each document will have vector embeddings generated automatically.
+      Returns detailed results including successful uploads and any errors.
+    operationId: bulkUploadDocuments
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - merchantId
+              - documents
+            properties:
+              merchantId:
+                type: string
+                example: "merchant_123"
+              documents:
+                type: array
+                minItems: 1
+                maxItems: 100
+                items:
+                  type: object
+                  required:
+                    - title
+                    - body
+                    - documentType
+                  properties:
+                    sku:
+                      type: string
+                      example: "PROD-001"
+                    title:
+                      type: string
+                      example: "Product Title"
+                    body:
+                      type: string
+                      example: "Product description..."
+                    documentType:
+                      type: string
+                      enum: [product, faq, policy, review]
+                    metadata:
+                      type: object
+    responses:
+      '201':
+        description: All documents uploaded successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/BulkUploadResponse'
+      '207':
+        description: Partial success (some documents failed)
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: false
+                data:
+                  $ref: '../components/schemas.yaml#/BulkUploadResponse'
+
+documentStats:
+  get:
+    tags:
+      - Documents
+    summary: Get document statistics
+    description: Get statistics about documents for a merchant
+    operationId: getDocumentStats
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchantId
+        in: query
+        required: true
+        schema:
+          type: string
+        example: "merchant_123"
+    responses:
+      '200':
+        description: Document statistics retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  $ref: '../components/schemas.yaml#/DocumentStats'
+
+documentsHealth:
+  get:
+    tags:
+      - Documents
+    summary: Document service health check
+    description: Health check for document service components
+    operationId: documentsHealthCheck
+    security: []
+    responses:
+      '200':
+        description: Document service is healthy
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/HealthResponse'
+      '503':
+        description: Document service is unhealthy
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yaml#/ErrorResponse'

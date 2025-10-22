@@ -1,0 +1,57 @@
+{
+  "permanent_storage": {
+    "location": "local"
+  },
+  "paths": {
+    "root": "/root/mindsdb_storage"
+  },
+  "api": {
+    "http": {
+      "host": "0.0.0.0",
+      "port": "47334",
+      "restart_on_failure": true,
+      "max_restart_count": 3,
+      "max_restart_interval_seconds": 300
+    },
+    "mysql": {
+      "host": "0.0.0.0",
+      "port": "47335",
+      "database": "mindsdb",
+      "ssl": false,
+      "restart_on_failure": true,
+      "max_restart_count": 3,
+      "max_restart_interval_seconds": 300
+    }
+  },
+  "cache": {
+    "type": "local"
+  },
+  "logging": {
+    "handlers": {
+      "console": {
+        "enabled": true,
+        "formatter": "default",
+        "level": "INFO"
+      },
+      "file": {
+        "enabled": true,
+        "level": "INFO",
+        "filename": "mindsdb.log",
+        "maxBytes": 10485760,
+        "backupCount": 5
+      }
+    }
+  },
+  "ml_task_queue": {
+    "type": "local"
+  },
+  "url_file_upload": {
+    "enabled": true,
+    "allowed_origins": [],
+    "disallowed_origins": []
+  },
+  "web_crawling_allowed_sites": [],
+  "data_catalog": {
+    "enabled": true
+  }
+}
