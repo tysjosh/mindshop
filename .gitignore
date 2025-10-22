@@ -62,6 +62,9 @@ jspm_packages/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.docker
+.env.test
+.env.bak
 
 # parcel-bundler cache
 .cache
@@ -151,3 +154,6 @@ local/
 # Drizzle
 drizzle/
 .drizzle/
+
+# Lambda functions (generated packages)
+lambda-functions/
