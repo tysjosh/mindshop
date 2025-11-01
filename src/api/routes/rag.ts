@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { documentController } from '../controllers/DocumentController';
+import { authenticateJWT } from '../middleware/auth';
 
 const router = Router();
+
+// Apply authentication middleware to all routes
+router.use(authenticateJWT());
 
 // RAG System Management Routes
 router.post('/merchants/:merchantId/rag/initialize', documentController.initializeRAGSystem.bind(documentController));

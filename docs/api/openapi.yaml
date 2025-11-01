@@ -175,6 +175,105 @@ paths:
   /bedrock-agent/compliance/report:
     $ref: './paths/bedrock-agent.yaml#/bedrockAgentComplianceReport'
 
+  # Bedrock Integration
+  /merchants/{merchantId}/bedrock/credentials:
+    $ref: './paths/bedrock-integration.yaml#/storeCredentials'
+  
+  /merchants/{merchantId}/bedrock/initialize:
+    $ref: './paths/bedrock-integration.yaml#/initializeBedrock'
+  
+  /merchants/{merchantId}/bedrock/status:
+    $ref: './paths/bedrock-integration.yaml#/getBedrockStatus'
+  
+  /merchants/{merchantId}/bedrock/ask:
+    $ref: './paths/bedrock-integration.yaml#/askWithBedrock'
+  
+  /merchants/{merchantId}/bedrock/query:
+    $ref: './paths/bedrock-integration.yaml#/queryWithBedrockRAG'
+  
+  /merchants/{merchantId}/bedrock/test:
+    $ref: './paths/bedrock-integration.yaml#/testBedrockIntegration'
+  
+  /bedrock/models:
+    $ref: './paths/bedrock-integration.yaml#/listBedrockModels'
+
+  # RAG System
+  /merchants/{merchantId}/rag/initialize:
+    $ref: './paths/rag.yaml#/initializeRAGSystem'
+  
+  /merchants/{merchantId}/rag/status:
+    $ref: './paths/rag.yaml#/getRAGSystemStatus'
+  
+  /merchants/{merchantId}/documents:
+    $ref: './paths/rag.yaml#/ingestDocument'
+  
+  /merchants/{merchantId}/documents/url:
+    $ref: './paths/rag.yaml#/ingestDocumentFromUrl'
+  
+  /merchants/{merchantId}/documents/{documentId}:
+    $ref: './paths/rag.yaml#/findSimilarDocuments'
+  
+  /merchants/{merchantId}/rag/ask:
+    $ref: './paths/rag.yaml#/askQuestion'
+
+  # Additional Chat Endpoints
+  /chat/analytics:
+    $ref: './paths/chat.yaml#/chatAnalytics'
+  
+  /chat/health:
+    $ref: './paths/chat.yaml#/chatHealth'
+
+  # Additional Session Endpoints
+  /sessions/{sessionId}/context:
+    $ref: './paths/sessions.yaml#/updateSessionContext'
+  
+  /sessions/users/{userId}:
+    $ref: './paths/sessions.yaml#/getUserSessions'
+  
+  /sessions/cleanup:
+    $ref: './paths/sessions.yaml#/cleanupSessions'
+  
+  /sessions/{sessionId}/messages:
+    $ref: './paths/sessions.yaml#/getSessionMessages'
+  
+  /sessions/billing:
+    $ref: './paths/sessions.yaml#/getBillingData'
+  
+  /sessions/track-usage:
+    $ref: './paths/sessions.yaml#/trackUsage'
+  
+  /sessions/health:
+    $ref: './paths/sessions.yaml#/sessionHealth'
+
+  # Additional Document Endpoints
+  /documents/search:
+    $ref: './paths/documents.yaml#/searchDocuments'
+  
+  /documents/health:
+    $ref: './paths/documents.yaml#/documentHealth'
+
+  # Semantic Retrieval (MindsDB Predictor)
+  /semantic-retrieval/deploy:
+    $ref: './paths/semantic-retrieval.yaml#/deployPredictor'
+  
+  /semantic-retrieval/search:
+    $ref: './paths/semantic-retrieval.yaml#/searchDocuments'
+  
+  /semantic-retrieval/rest-search:
+    $ref: './paths/semantic-retrieval.yaml#/restSearchDocuments'
+  
+  /semantic-retrieval/validate-grounding:
+    $ref: './paths/semantic-retrieval.yaml#/validateGrounding'
+  
+  /semantic-retrieval/status/{merchantId}:
+    $ref: './paths/semantic-retrieval.yaml#/getPredictorStatus'
+  
+  /semantic-retrieval/config/{merchantId}:
+    $ref: './paths/semantic-retrieval.yaml#/updatePredictorConfig'
+  
+  /semantic-retrieval/health:
+    $ref: './paths/semantic-retrieval.yaml#/semanticRetrievalHealth'
+
 tags:
   - name: Health
     description: System health and status endpoints
@@ -190,6 +289,12 @@ tags:
     description: E-commerce checkout and payment processing
   - name: Bedrock Agent
     description: AWS Bedrock Agent integration for advanced AI conversations
+  - name: Bedrock Integration
+    description: AWS Bedrock service integration and credential management
+  - name: RAG System
+    description: RAG system initialization, document ingestion, and question answering
+  - name: Semantic Retrieval
+    description: MindsDB-powered semantic retrieval with predictor management and grounding validation
 
 externalDocs:
   description: Full API Documentation

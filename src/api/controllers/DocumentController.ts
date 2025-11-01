@@ -154,8 +154,8 @@ export class DocumentController {
   // Search documents using semantic search
   async searchDocuments(req: Request, res: Response): Promise<void> {
     try {
-      const { merchantId } = req.params;
       const { 
+        merchantId,
         query, 
         limit = 10, 
         threshold = 0.7, 
@@ -331,9 +331,9 @@ export class DocumentController {
   // Get document statistics
   async getDocumentStats(req: Request, res: Response): Promise<void> {
     try {
-      const { merchantId } = req.params;
+      const { merchantId } = req.query;
 
-      if (!merchantId) {
+      if (!merchantId || typeof merchantId !== 'string') {
         res.status(400).json({
           error: 'merchantId is required'
         });
@@ -427,8 +427,7 @@ export class DocumentController {
    */
   async createDocument(req: Request, res: Response): Promise<void> {
     try {
-      const { merchantId } = req.params;
-      const { content, title, source, document_type } = req.body;
+      const { merchantId, content, title, source, document_type } = req.body;
 
       if (!merchantId || !content) {
         res.status(400).json({

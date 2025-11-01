@@ -1,10 +1,14 @@
 import { Router } from 'express';
 import { bedrockIntegrationController } from '../controllers/BedrockIntegrationController';
+import { authenticateJWT } from '../middleware/auth';
 import { validateRequest } from '../middleware/validation';
 import { rateLimit } from 'express-rate-limit';
 import Joi from 'joi';
 
 const router = Router();
+
+// Apply authentication middleware to all routes
+router.use(authenticateJWT());
 
 // Rate limiting for Bedrock integration endpoints
 const bedrockRateLimit = rateLimit({

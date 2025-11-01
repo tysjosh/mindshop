@@ -1,0 +1,466 @@
+# Bedrock Integration API Endpoints
+
+storeCredentials:
+  post:
+    tags:
+      - Bedrock Integration
+    summary: Store AWS credentials for Bedrock integration
+    description: |
+      Securely store AWS credentials for a merchant to enable Bedrock integration.
+      Credentials are encrypted and stored securely.
+    operationId: storeBedrockCredentials
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - credentialId
+              - awsAccessKeyId
+              - awsSecretAccessKey
+            properties:
+              credentialId:
+                type: string
+                minLength: 3
+                maxLength: 50
+                description: Unique identifier for this credential set
+              awsAccessKeyId:
+                type: string
+                description: AWS Access Key ID
+              awsSecretAccessKey:
+                type: string
+                format: password
+                description: AWS Secret Access Key
+              awsRegion:
+                type: string
+                default: us-east-2
+                description: AWS region for Bedrock service
+              description:
+                type: string
+                maxLength: 200
+                description: Optional description for this credential set
+    responses:
+      '201':
+        description: Credentials stored successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: Credentials stored successfully
+                credentialId:
+                  type: string
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+      '429':
+        $ref: '../components/schemas.yaml#/components/responses/TooManyRequests'
+
+initializeBedrock:
+  post:
+    tags:
+      - Bedrock Integration
+    summary: Initialize Bedrock integration for a merchant
+    description: |
+      Initialize AWS Bedrock integration with specified credentials and configuration.
+      Supports three authentication methods: direct credentials, credential reference, or service defaults.
+    operationId: initializeBedrockIntegration
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              awsAccessKeyId:
+                type: string
+                description: Direct AWS Access Key ID (Option 1)
+              awsSecretAccessKey:
+                type: string
+                format: password
+                description: Direct AWS Secret Access Key (Option 1)
+              credentialId:
+                type: string
+                description: Reference to stored credentials (Option 2)
+              useServiceDefaults:
+                type: boolean
+                default: false
+                description: Use service default credentials (Option 3)
+              awsRegion:
+                type: string
+                default: us-east-2
+                description: AWS region for Bedrock service
+              modelId:
+                type: string
+                default: amazon.nova-micro-v1:0
+                description: Bedrock model identifier
+              mode:
+                type: string
+                enum: [default, conversational]
+                default: default
+                description: Integration mode
+              maxTokens:
+                type: integer
+                minimum: 1
+                maximum: 8000
+                default: 4096
+                description: Maximum tokens for model responses
+              temperature:
+                type: number
+                minimum: 0
+                maximum: 1
+                default: 0.7
+                description: Model temperature for response generation
+    responses:
+      '200':
+        description: Bedrock integration initialized successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: Bedrock integration initialized successfully
+                config:
+                  type: object
+                  properties:
+                    region:
+                      type: string
+                    modelId:
+                      type: string
+                    mode:
+                      type: string
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+
+getBedrockStatus:
+  get:
+    tags:
+      - Bedrock Integration
+    summary: Get Bedrock integration status
+    description: Retrieve the current status and configuration of Bedrock integration for a merchant
+    operationId: getBedrockIntegrationStatus
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+    responses:
+      '200':
+        description: Bedrock integration status retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                initialized:
+                  type: boolean
+                  description: Whether Bedrock integration is initialized
+                config:
+                  type: object
+                  properties:
+                    region:
+                      type: string
+                    modelId:
+                      type: string
+                    mode:
+                      type: string
+                    maxTokens:
+                      type: integer
+                    temperature:
+                      type: number
+                lastUsed:
+                  type: string
+                  format: date-time
+                  description: Last time the integration was used
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+      '404':
+        $ref: '../components/schemas.yaml#/components/responses/NotFound'
+
+askWithBedrock:
+  post:
+    tags:
+      - Bedrock Integration
+    summary: Ask a question using Bedrock integration
+    description: |
+      Send a question to AWS Bedrock for processing. Optionally includes document context
+      from the RAG system for enhanced responses.
+    operationId: askWithBedrock
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - question
+            properties:
+              question:
+                type: string
+                description: The question to ask
+              useBedrockIntegration:
+                type: boolean
+                default: true
+                description: Whether to use Bedrock integration
+              bedrockModelName:
+                type: string
+                description: Specific Bedrock model to use (optional)
+              includeContext:
+                type: boolean
+                default: true
+                description: Include RAG document context
+              maxDocuments:
+                type: integer
+                minimum: 1
+                maximum: 20
+                default: 5
+                description: Maximum number of context documents to include
+    responses:
+      '200':
+        description: Question processed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answer:
+                  type: string
+                  description: The generated answer
+                confidence:
+                  type: number
+                  description: Confidence score (0-1)
+                sources:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      documentId:
+                        type: string
+                      title:
+                        type: string
+                      relevanceScore:
+                        type: number
+                metadata:
+                  type: object
+                  properties:
+                    modelUsed:
+                      type: string
+                    tokensUsed:
+                      type: integer
+                    processingTime:
+                      type: number
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+
+queryWithBedrockRAG:
+  post:
+    tags:
+      - Bedrock Integration
+    summary: Query using Bedrock RAG integration
+    description: |
+      Perform a RAG query using AWS Bedrock with hybrid search capabilities.
+      Combines semantic search with Bedrock's language understanding.
+    operationId: queryWithBedrockRAG
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - query
+            properties:
+              query:
+                type: string
+                description: The search query
+              useHybridSearch:
+                type: boolean
+                default: true
+                description: Use hybrid search (semantic + keyword)
+              maxResults:
+                type: integer
+                minimum: 1
+                maximum: 20
+                default: 5
+                description: Maximum number of results
+              threshold:
+                type: number
+                minimum: 0
+                maximum: 1
+                default: 0.7
+                description: Minimum relevance threshold
+              includeExplainability:
+                type: boolean
+                default: true
+                description: Include explainability information
+    responses:
+      '200':
+        description: Query processed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                results:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      documentId:
+                        type: string
+                      title:
+                        type: string
+                      content:
+                        type: string
+                      relevanceScore:
+                        type: number
+                      explanation:
+                        type: string
+                summary:
+                  type: string
+                  description: AI-generated summary of results
+                metadata:
+                  type: object
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+
+listBedrockModels:
+  get:
+    tags:
+      - Bedrock Integration
+    summary: List available Bedrock models
+    description: Retrieve a list of all available AWS Bedrock models and their capabilities
+    operationId: listBedrockModels
+    responses:
+      '200':
+        description: Models retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                models:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      modelId:
+                        type: string
+                      name:
+                        type: string
+                      description:
+                        type: string
+                      capabilities:
+                        type: array
+                        items:
+                          type: string
+                      maxTokens:
+                        type: integer
+                      pricing:
+                        type: object
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+
+testBedrockIntegration:
+  post:
+    tags:
+      - Bedrock Integration
+    summary: Test Bedrock integration
+    description: Send a test query to verify Bedrock integration is working correctly
+    operationId: testBedrockIntegration
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              testQuery:
+                type: string
+                default: Hello, can you help me?
+                description: Test query to send
+    responses:
+      '200':
+        description: Test completed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                response:
+                  type: string
+                latency:
+                  type: number
+                  description: Response time in milliseconds
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'

@@ -131,18 +131,39 @@ export class BedrockAgentService {
       }
 
       // Log user input with enhanced audit logging
-      await this.auditLoggingService.logConversationEntry({
-        sessionId: session.sessionId,
-        merchantId: request.merchantId,
-        userId: request.userId,
-        messageType: 'user_input',
-        content: request.query,
-        metadata: {
-          requestPayloadHash: this.hashPayload(request),
-          responseReference: '', // Will be updated after response
-        },
-        piiRedacted: false, // PII redaction will be handled by the service
-      });
+      if (process.env.NODE_ENV === 'production') {
+        // In production, fail fast if audit logging fails
+        await this.auditLoggingService.logConversationEntry({
+          sessionId: session.sessionId,
+          merchantId: request.merchantId,
+          userId: request.userId,
+          messageType: 'user_input',
+          content: request.query,
+          metadata: {
+            requestPayloadHash: this.hashPayload(request),
+            responseReference: '', // Will be updated after response
+          },
+          piiRedacted: false, // PII redaction will be handled by the service
+        });
+      } else {
+        // In development, gracefully handle audit logging failures
+        try {
+          await this.auditLoggingService.logConversationEntry({
+            sessionId: session.sessionId,
+            merchantId: request.merchantId,
+            userId: request.userId,
+            messageType: 'user_input',
+            content: request.query,
+            metadata: {
+              requestPayloadHash: this.hashPayload(request),
+              responseReference: '', // Will be updated after response
+            },
+            piiRedacted: false, // PII redaction will be handled by the service
+          });
+        } catch (auditError) {
+          console.warn('Audit logging failed (non-critical in development):', auditError);
+        }
+      }
 
       // Parse intent and generate execution plan
       const { intent, plan } = await this.parseIntentAndPlan(request.query, {
@@ -230,24 +251,51 @@ export class BedrockAgentService {
       });
 
       // Log assistant response with enhanced audit logging
-      await this.auditLoggingService.logConversationEntry({
-        sessionId: session.sessionId,
-        merchantId: request.merchantId,
-        userId: request.userId,
-        messageType: 'assistant_response',
-        content: agentResponse.response,
-        metadata: {
-          requestPayloadHash: this.hashPayload(agentResponse),
-          responseReference: `response:${assistantMessage.id}`,
-          latency: Date.now() - startTime,
-          toolsUsed: coordinatedResult?.results?.map((r: any) => r.toolId) || [],
-          confidence: agentResponse.confidence,
-          intent: intent.intent,
-          sources: agentResponse.sources.map(s => ({ id: s.id, score: s.score })),
-          predictions: agentResponse.predictions?.map(p => ({ sku: p.sku, confidence: p.confidence })),
-        },
-        piiRedacted: false,
-      });
+      if (process.env.NODE_ENV === 'production') {
+        // In production, fail fast if audit logging fails
+        await this.auditLoggingService.logConversationEntry({
+          sessionId: session.sessionId,
+          merchantId: request.merchantId,
+          userId: request.userId,
+          messageType: 'assistant_response',
+          content: agentResponse.response,
+          metadata: {
+            requestPayloadHash: this.hashPayload(agentResponse),
+            responseReference: `response:${assistantMessage.id}`,
+            latency: Date.now() - startTime,
+            toolsUsed: coordinatedResult?.results?.map((r: any) => r.toolId) || [],
+            confidence: agentResponse.confidence,
+            intent: intent.intent,
+            sources: agentResponse.sources.map(s => ({ id: s.id, score: s.score })),
+            predictions: agentResponse.predictions?.map(p => ({ sku: p.sku, confidence: p.confidence })),
+          },
+          piiRedacted: false,
+        });
+      } else {
+        // In development, gracefully handle audit logging failures
+        try {
+          await this.auditLoggingService.logConversationEntry({
+            sessionId: session.sessionId,
+            merchantId: request.merchantId,
+            userId: request.userId,
+            messageType: 'assistant_response',
+            content: agentResponse.response,
+            metadata: {
+              requestPayloadHash: this.hashPayload(agentResponse),
+              responseReference: `response:${assistantMessage.id}`,
+              latency: Date.now() - startTime,
+              toolsUsed: coordinatedResult?.results?.map((r: any) => r.toolId) || [],
+              confidence: agentResponse.confidence,
+              intent: intent.intent,
+              sources: agentResponse.sources.map(s => ({ id: s.id, score: s.score })),
+              predictions: agentResponse.predictions?.map(p => ({ sku: p.sku, confidence: p.confidence })),
+            },
+            piiRedacted: false,
+          });
+        } catch (auditError) {
+          console.warn('Audit logging failed (non-critical in development):', auditError);
+        }
+      }
 
       return {
         ...agentResponse,
@@ -256,19 +304,41 @@ export class BedrockAgentService {
 
     } catch (error) {
       // Log error with enhanced audit logging
-      await this.auditLoggingService.logConversationEntry({
-        sessionId: session?.sessionId || 'unknown',
-        merchantId: request.merchantId,
-        userId: request.userId,
-        messageType: 'system_event',
-        content: `Error processing chat: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        metadata: {
-          requestPayloadHash: this.hashPayload(request),
-          responseReference: '',
-          errorDetails: error instanceof Error ? error.message : 'Unknown error',
-        },
-        piiRedacted: false,
-      });
+      if (process.env.NODE_ENV === 'production') {
+        // In production, fail fast if audit logging fails
+        await this.auditLoggingService.logConversationEntry({
+          sessionId: session?.sessionId || 'unknown',
+          merchantId: request.merchantId,
+          userId: request.userId,
+          messageType: 'system_event',
+          content: `Error processing chat: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          metadata: {
+            requestPayloadHash: this.hashPayload(request),
+            responseReference: '',
+            errorDetails: error instanceof Error ? error.message : 'Unknown error',
+          },
+          piiRedacted: false,
+        });
+      } else {
+        // In development, gracefully handle audit logging failures
+        try {
+          await this.auditLoggingService.logConversationEntry({
+            sessionId: session?.sessionId || 'unknown',
+            merchantId: request.merchantId,
+            userId: request.userId,
+            messageType: 'system_event',
+            content: `Error processing chat: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            metadata: {
+              requestPayloadHash: this.hashPayload(request),
+              responseReference: '',
+              errorDetails: error instanceof Error ? error.message : 'Unknown error',
+            },
+            piiRedacted: false,
+          });
+        } catch (auditError) {
+          console.warn('Audit logging failed (non-critical in development):', auditError);
+        }
+      }
 
       throw new Error(`Chat processing failed: ${error}`);
     }

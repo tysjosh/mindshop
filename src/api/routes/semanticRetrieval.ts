@@ -8,12 +8,7 @@ import { rateLimitMiddleware } from "../middleware/rateLimit";
 const router = Router();
 
 // Apply authentication middleware to all routes
-router.use(authenticateJWT({
-  userPoolId: process.env.COGNITO_USER_POOL_ID || 'dev-pool',
-  clientId: process.env.COGNITO_CLIENT_ID,
-  region: process.env.AWS_REGION || 'us-east-2',
-  enableMockAuth: process.env.NODE_ENV === 'development' && process.env.ENABLE_COGNITO_AUTH !== 'true'
-}));
+router.use(authenticateJWT());
 
 // Apply rate limiting
 router.use(

@@ -9,7 +9,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 const router = Router();
 
 // Apply authentication middleware to all routes
-router.use(authenticateJWT);
+router.use(authenticateJWT());
 
 // Apply rate limiting
 const sessionRateLimit = rateLimitMiddleware({
@@ -139,6 +139,55 @@ const cleanupSessionsSchema = {
 };
 
 /**
+ * @route GET /api/sessions/health
+ * @desc Health check endpoint
+ * @access Public
+ */
+router.get(
+  '/health',
+  asyncHandler(sessionController.healthCheck.bind(sessionController))
+);
+
+/**
+ * @route GET /api/sessions/analytics
+ * @desc Get session analytics for a merchant
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/analytics',
+  analyticsRateLimit,
+  validateRequest(analyticsQuerySchema),
+  asyncHandler(sessionController.getSessionAnalytics.bind(sessionController))
+);
+
+/**
+ * @route GET /api/sessions/billing
+ * @desc Get billing data for a merchant
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/billing',
+  analyticsRateLimit,
+  validateRequest(billingQuerySchema),
+  asyncHandler(sessionController.getBillingData.bind(sessionController))
+);
+
+/**
+ * @route GET /api/sessions/users/:userId
+ * @desc Get user sessions
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/users/:userId',
+  sessionRateLimit,
+  validateRequest({
+    ...userIdParamSchema,
+    ...getUserSessionsSchema,
+  }),
+  asyncHandler(sessionController.getUserSessions.bind(sessionController))
+);
+
+/**
  * @route POST /api/sessions
  * @desc Create a new session
  * @access Private (requires authentication)
@@ -148,6 +197,30 @@ router.post(
   sessionRateLimit,
   validateRequest(createSessionSchema),
   asyncHandler(sessionController.createSession.bind(sessionController))
+);
+
+/**
+ * @route POST /api/sessions/cleanup
+ * @desc Cleanup expired sessions for a merchant
+ * @access Private (requires authentication)
+ */
+router.post(
+  '/cleanup',
+  sessionRateLimit,
+  validateRequest(cleanupSessionsSchema),
+  asyncHandler(sessionController.cleanupExpiredSessions.bind(sessionController))
+);
+
+/**
+ * @route POST /api/sessions/track-usage
+ * @desc Track session usage for billing
+ * @access Private (requires authentication)
+ */
+router.post(
+  '/track-usage',
+  sessionRateLimit,
+  validateRequest(trackUsageSchema),
+  asyncHandler(sessionController.trackUsage.bind(sessionController))
 );
 
 /**
@@ -163,6 +236,21 @@ router.get(
     ...merchantIdQuerySchema,
   }),
   asyncHandler(sessionController.getSession.bind(sessionController))
+);
+
+/**
+ * @route GET /api/sessions/:sessionId/messages
+ * @desc Get session conversation history with pagination
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/:sessionId/messages',
+  sessionRateLimit,
+  validateRequest({
+    ...sessionIdParamSchema,
+    ...getSessionMessagesSchema,
+  }),
+  asyncHandler(sessionController.getSessionMessages.bind(sessionController))
 );
 
 /**
@@ -196,94 +284,6 @@ router.delete(
     ...deleteSessionSchema,
   }),
   asyncHandler(sessionController.deleteSession.bind(sessionController))
-);
-
-/**
- * @route GET /api/sessions/users/:userId
- * @desc Get user sessions
- * @access Private (requires authentication)
- */
-router.get(
-  '/users/:userId',
-  sessionRateLimit,
-  validateRequest({
-    ...userIdParamSchema,
-    ...getUserSessionsSchema,
-  }),
-  asyncHandler(sessionController.getUserSessions.bind(sessionController))
-);
-
-/**
- * @route GET /api/sessions/analytics
- * @desc Get session analytics for a merchant
- * @access Private (requires authentication)
- */
-router.get(
-  '/analytics',
-  analyticsRateLimit,
-  validateRequest(analyticsQuerySchema),
-  asyncHandler(sessionController.getSessionAnalytics.bind(sessionController))
-);
-
-/**
- * @route POST /api/sessions/cleanup
- * @desc Cleanup expired sessions for a merchant
- * @access Private (requires authentication)
- */
-router.post(
-  '/cleanup',
-  sessionRateLimit,
-  validateRequest(cleanupSessionsSchema),
-  asyncHandler(sessionController.cleanupExpiredSessions.bind(sessionController))
-);
-
-/**
- * @route GET /api/sessions/:sessionId/messages
- * @desc Get session conversation history with pagination
- * @access Private (requires authentication)
- */
-router.get(
-  '/:sessionId/messages',
-  sessionRateLimit,
-  validateRequest({
-    ...sessionIdParamSchema,
-    ...getSessionMessagesSchema,
-  }),
-  asyncHandler(sessionController.getSessionMessages.bind(sessionController))
-);
-
-/**
- * @route GET /api/sessions/billing
- * @desc Get billing data for a merchant
- * @access Private (requires authentication)
- */
-router.get(
-  '/billing',
-  analyticsRateLimit,
-  validateRequest(billingQuerySchema),
-  asyncHandler(sessionController.getBillingData.bind(sessionController))
-);
-
-/**
- * @route POST /api/sessions/track-usage
- * @desc Track session usage for billing
- * @access Private (requires authentication)
- */
-router.post(
-  '/track-usage',
-  sessionRateLimit,
-  validateRequest(trackUsageSchema),
-  asyncHandler(sessionController.trackUsage.bind(sessionController))
-);
-
-/**
- * @route GET /api/sessions/health
- * @desc Health check endpoint
- * @access Public
- */
-router.get(
-  '/health',
-  asyncHandler(sessionController.healthCheck.bind(sessionController))
 );
 
 export default router;

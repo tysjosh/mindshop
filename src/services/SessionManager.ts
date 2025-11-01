@@ -1,9 +1,14 @@
 // Use stub types for development
-let DynamoDBClient: any, GetItemCommand: any, PutItemCommand: any, UpdateItemCommand: any, DeleteItemCommand: any, QueryCommand: any;
+let DynamoDBClient: any,
+  GetItemCommand: any,
+  PutItemCommand: any,
+  UpdateItemCommand: any,
+  DeleteItemCommand: any,
+  QueryCommand: any;
 let marshall: any, unmarshall: any;
 try {
-  const dynamodb = require('@aws-sdk/client-dynamodb');
-  const util = require('@aws-sdk/util-dynamodb');
+  const dynamodb = require("@aws-sdk/client-dynamodb");
+  const util = require("@aws-sdk/util-dynamodb");
   DynamoDBClient = dynamodb.DynamoDBClient;
   GetItemCommand = dynamodb.GetItemCommand;
   PutItemCommand = dynamodb.PutItemCommand;
@@ -13,18 +18,32 @@ try {
   marshall = util.marshall;
   unmarshall = util.unmarshall;
 } catch {
-  DynamoDBClient = class { async send() { return {}; } };
-  GetItemCommand = class { constructor() {} };
-  PutItemCommand = class { constructor() {} };
-  UpdateItemCommand = class { constructor() {} };
-  DeleteItemCommand = class { constructor() {} };
-  QueryCommand = class { constructor() {} };
+  DynamoDBClient = class {
+    async send() {
+      return {};
+    }
+  };
+  GetItemCommand = class {
+    constructor() {}
+  };
+  PutItemCommand = class {
+    constructor() {}
+  };
+  UpdateItemCommand = class {
+    constructor() {}
+  };
+  DeleteItemCommand = class {
+    constructor() {}
+  };
+  QueryCommand = class {
+    constructor() {}
+  };
   marshall = (obj: any) => obj;
   unmarshall = (obj: any) => obj;
 }
-import { v4 as uuidv4 } from 'uuid';
-import { config } from '../config';
-import { UserSession, UserContext, Message } from '../types';
+import { v4 as uuidv4 } from "uuid";
+import { config } from "../config";
+import { UserSession, UserContext, Message } from "../types";
 
 export interface SessionManagerConfig {
   tableName: string;
@@ -62,7 +81,9 @@ export class SessionManager {
   async createSession(request: CreateSessionRequest): Promise<UserSession> {
     const sessionId = uuidv4();
     const now = new Date();
-    const ttl = Math.floor((now.getTime() + (this.ttlHours * 60 * 60 * 1000)) / 1000);
+    const ttl = Math.floor(
+      (now.getTime() + this.ttlHours * 60 * 60 * 1000) / 1000
+    );
 
     const session: UserSession = {
       sessionId,
@@ -89,7 +110,7 @@ export class SessionManager {
     const command = new PutItemCommand({
       TableName: this.tableName,
       Item: marshall(item),
-      ConditionExpression: 'attribute_not_exists(session_id)',
+      ConditionExpression: "attribute_not_exists(session_id)",
     });
 
     try {
@@ -103,7 +124,10 @@ export class SessionManager {
   /**
    * Retrieve a session by session ID and merchant ID
    */
-  async getSession(sessionId: string, merchantId: string): Promise<UserSession | null> {
+  async getSession(
+    sessionId: string,
+    merchantId: string
+  ): Promise<UserSession | null> {
     const command = new GetItemCommand({
       TableName: this.tableName,
       Key: marshall({
@@ -114,13 +138,13 @@ export class SessionManager {
 
     try {
       const result = await this.dynamoClient.send(command);
-      
+
       if (!result.Item) {
         return null;
       }
 
       const item = unmarshall(result.Item);
-      
+
       return {
         sessionId: item.session_id,
         userId: item.user_id,
@@ -145,29 +169,32 @@ export class SessionManager {
    */
   async updateSession(request: UpdateSessionRequest): Promise<void> {
     const now = new Date();
-    const ttl = Math.floor((now.getTime() + (this.ttlHours * 60 * 60 * 1000)) / 1000);
+    const ttl = Math.floor(
+      (now.getTime() + this.ttlHours * 60 * 60 * 1000) / 1000
+    );
 
-    let updateExpression = 'SET last_activity = :lastActivity, #ttl = :ttl';
+    let updateExpression = "SET last_activity = :lastActivity, #ttl = :ttl";
     let expressionAttributeNames: Record<string, string> = {
-      '#ttl': 'ttl',
+      "#ttl": "ttl",
     };
     let expressionAttributeValues: Record<string, any> = {
-      ':lastActivity': now.toISOString(),
-      ':ttl': ttl,
+      ":lastActivity": now.toISOString(),
+      ":ttl": ttl,
     };
 
     // Add message to conversation history
     if (request.message) {
-      updateExpression += ', conversation_history = list_append(if_not_exists(conversation_history, :emptyList), :message)';
-      expressionAttributeValues[':message'] = [request.message];
-      expressionAttributeValues[':emptyList'] = [];
+      updateExpression +=
+        ", conversation_history = list_append(if_not_exists(conversation_history, :emptyList), :message)";
+      expressionAttributeValues[":message"] = [request.message];
+      expressionAttributeValues[":emptyList"] = [];
     }
 
     // Update context if provided
     if (request.context) {
-      updateExpression += ', #context = if_not_exists(#context, :emptyContext)';
-      expressionAttributeNames['#context'] = 'context';
-      expressionAttributeValues[':emptyContext'] = {
+      updateExpression += ", #context = if_not_exists(#context, :emptyContext)";
+      expressionAttributeNames["#context"] = "context";
+      expressionAttributeValues[":emptyContext"] = {
         preferences: {},
         purchaseHistory: [],
         currentCart: [],
@@ -193,7 +220,7 @@ export class SessionManager {
       UpdateExpression: updateExpression,
       ExpressionAttributeNames: expressionAttributeNames,
       ExpressionAttributeValues: marshall(expressionAttributeValues),
-      ConditionExpression: 'attribute_exists(session_id)',
+      ConditionExpression: "attribute_exists(session_id)",
     });
 
     try {
@@ -225,13 +252,16 @@ export class SessionManager {
   /**
    * Get all sessions for a user
    */
-  async getUserSessions(userId: string, limit: number = 10): Promise<UserSession[]> {
+  async getUserSessions(
+    userId: string,
+    limit: number = 10
+  ): Promise<UserSession[]> {
     const command = new QueryCommand({
       TableName: this.tableName,
-      IndexName: 'UserIdIndex',
-      KeyConditionExpression: 'user_id = :userId',
+      IndexName: "UserIdIndex",
+      KeyConditionExpression: "user_id = :userId",
       ExpressionAttributeValues: marshall({
-        ':userId': userId,
+        ":userId": userId,
       }),
       ScanIndexForward: false, // Most recent first
       Limit: limit,
@@ -239,7 +269,7 @@ export class SessionManager {
 
     try {
       const result = await this.dynamoClient.send(command);
-      
+
       if (!result.Items) {
         return [];
       }
@@ -273,24 +303,24 @@ export class SessionManager {
     // DynamoDB TTL will automatically handle cleanup, but this method
     // can be used for manual cleanup if needed
     const now = Math.floor(Date.now() / 1000);
-    
+
     // Query sessions for the merchant
     const queryCommand = new QueryCommand({
       TableName: this.tableName,
-      KeyConditionExpression: 'merchant_id = :merchantId',
-      FilterExpression: '#ttl < :now',
+      KeyConditionExpression: "merchant_id = :merchantId",
+      FilterExpression: "#ttl < :now",
       ExpressionAttributeNames: {
-        '#ttl': 'ttl',
+        "#ttl": "ttl",
       },
       ExpressionAttributeValues: marshall({
-        ':merchantId': merchantId,
-        ':now': now,
+        ":merchantId": merchantId,
+        ":now": now,
       }),
     });
 
     try {
       const result = await this.dynamoClient.send(queryCommand);
-      
+
       if (!result.Items || result.Items.length === 0) {
         return 0;
       }
@@ -318,16 +348,16 @@ export class SessionManager {
   }> {
     const command = new QueryCommand({
       TableName: this.tableName,
-      KeyConditionExpression: 'merchant_id = :merchantId',
+      KeyConditionExpression: "merchant_id = :merchantId",
       ExpressionAttributeValues: marshall({
-        ':merchantId': merchantId,
+        ":merchantId": merchantId,
       }),
-      Select: 'ALL_ATTRIBUTES',
+      Select: "ALL_ATTRIBUTES",
     });
 
     try {
       const result = await this.dynamoClient.send(command);
-      
+
       if (!result.Items) {
         return {
           totalSessions: 0,
@@ -338,7 +368,7 @@ export class SessionManager {
 
       const now = Date.now();
       const sessions = result.Items.map((item: any) => unmarshall(item));
-      
+
       const activeSessions = sessions.filter((session: any) => {
         const ttl = session.ttl * 1000; // Convert to milliseconds
         return ttl > now;
@@ -350,7 +380,8 @@ export class SessionManager {
         return sum + (lastActivity - created);
       }, 0);
 
-      const avgSessionDuration = sessions.length > 0 ? totalDuration / sessions.length : 0;
+      const avgSessionDuration =
+        sessions.length > 0 ? totalDuration / sessions.length : 0;
 
       return {
         totalSessions: sessions.length,
@@ -364,10 +395,23 @@ export class SessionManager {
 }
 
 // Factory function to create SessionManager with default config
-export function createSessionManager(): SessionManager {
+// Automatically switches between Postgres (local dev) and DynamoDB (production)
+export function createSessionManager(): SessionManager | any {
+  const usePostgres =
+    process.env.USE_POSTGRES_SESSIONS === "true" ||
+    (process.env.NODE_ENV === "development" &&
+      process.env.USE_POSTGRES_SESSIONS !== "false");
+
+  if (usePostgres) {
+    console.log("📦 Using PostgresSessionManager for local development");
+    const { PostgresSessionManager } = require("./PostgresSessionManager");
+    return new PostgresSessionManager();
+  }
+
+  console.log("☁️  Using DynamoDB SessionManager for production");
   return new SessionManager({
-    tableName: process.env.SESSION_TABLE_NAME || 'mindsdb-rag-sessions-dev',
+    tableName: process.env.SESSION_TABLE_NAME || "mindsdb-rag-sessions-dev",
     region: config.aws.region,
-    ttlHours: parseInt(process.env.SESSION_TTL_HOURS || '24', 10),
+    ttlHours: parseInt(process.env.SESSION_TTL_HOURS || "24", 10),
   });
 }

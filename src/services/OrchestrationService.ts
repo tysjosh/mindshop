@@ -161,18 +161,39 @@ export class OrchestrationService {
       await this.trackUsage(request, componentLatencies, costEstimate);
 
       // Step 5: Audit logging
-      await this.auditLogRepository.create({
-        merchantId: request.merchantId,
-        userId: request.userId,
-        sessionId: request.sessionId,
-        operation: `orchestration_${request.operation}`,
-        requestPayloadHash: this.hashPayload(sanitizedRequest),
-        responseReference: `success:${request.requestId}`,
-        outcome: 'success',
-        actor: request.userId,
-        ipAddress: request.metadata?.ipAddress,
-        userAgent: request.metadata?.userAgent,
-      });
+      if (process.env.NODE_ENV === 'production') {
+        // In production, fail fast if audit logging fails
+        await this.auditLogRepository.create({
+          merchantId: request.merchantId,
+          userId: request.userId,
+          sessionId: request.sessionId,
+          operation: `orchestration_${request.operation}`,
+          requestPayloadHash: this.hashPayload(sanitizedRequest),
+          responseReference: `success:${request.requestId}`,
+          outcome: 'success',
+          actor: request.userId,
+          ipAddress: request.metadata?.ipAddress,
+          userAgent: request.metadata?.userAgent,
+        });
+      } else {
+        // In development, gracefully handle audit logging failures
+        try {
+          await this.auditLogRepository.create({
+            merchantId: request.merchantId,
+            userId: request.userId,
+            sessionId: request.sessionId,
+            operation: `orchestration_${request.operation}`,
+            requestPayloadHash: this.hashPayload(sanitizedRequest),
+            responseReference: `success:${request.requestId}`,
+            outcome: 'success',
+            actor: request.userId,
+            ipAddress: request.metadata?.ipAddress,
+            userAgent: request.metadata?.userAgent,
+          });
+        } catch (auditError) {
+          console.warn('Audit logging failed (non-critical in development):', auditError);
+        }
+      }
 
       const executionTime = Date.now() - startTime;
 
@@ -196,19 +217,41 @@ export class OrchestrationService {
       console.error(`❌ Orchestration failed for request ${request.requestId}:`, error);
 
       // Audit log the failure
-      await this.auditLogRepository.create({
-        merchantId: request.merchantId,
-        userId: request.userId,
-        sessionId: request.sessionId,
-        operation: `orchestration_${request.operation}`,
-        requestPayloadHash: this.hashPayload(request),
-        responseReference: `error:${request.requestId}`,
-        outcome: 'failure',
-        reason: error.message,
-        actor: request.userId,
-        ipAddress: request.metadata?.ipAddress,
-        userAgent: request.metadata?.userAgent,
-      });
+      if (process.env.NODE_ENV === 'production') {
+        // In production, fail fast if audit logging fails
+        await this.auditLogRepository.create({
+          merchantId: request.merchantId,
+          userId: request.userId,
+          sessionId: request.sessionId,
+          operation: `orchestration_${request.operation}`,
+          requestPayloadHash: this.hashPayload(request),
+          responseReference: `error:${request.requestId}`,
+          outcome: 'failure',
+          reason: error.message,
+          actor: request.userId,
+          ipAddress: request.metadata?.ipAddress,
+          userAgent: request.metadata?.userAgent,
+        });
+      } else {
+        // In development, gracefully handle audit logging failures
+        try {
+          await this.auditLogRepository.create({
+            merchantId: request.merchantId,
+            userId: request.userId,
+            sessionId: request.sessionId,
+            operation: `orchestration_${request.operation}`,
+            requestPayloadHash: this.hashPayload(request),
+            responseReference: `error:${request.requestId}`,
+            outcome: 'failure',
+            reason: error.message,
+            actor: request.userId,
+            ipAddress: request.metadata?.ipAddress,
+            userAgent: request.metadata?.userAgent,
+          });
+        } catch (auditError) {
+          console.warn('Audit logging failed (non-critical in development):', auditError);
+        }
+      }
 
       const executionTime = Date.now() - startTime;
 

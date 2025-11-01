@@ -1,0 +1,494 @@
+# Semantic Retrieval API Endpoints
+
+deployPredictor:
+  post:
+    tags:
+      - Semantic Retrieval
+    summary: Deploy semantic retriever predictor
+    description: |
+      Deploy a MindsDB semantic retrieval predictor for a merchant.
+      This sets up the ML model for semantic document search.
+    operationId: deploySemanticPredictor
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - merchantId
+            properties:
+              merchantId:
+                type: string
+                minLength: 3
+                maxLength: 100
+                description: Unique merchant identifier
+    responses:
+      '200':
+        description: Predictor deployed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: Semantic retrieval predictor deployed successfully
+                predictorName:
+                  type: string
+                  description: Name of the deployed predictor
+                status:
+                  type: string
+                  enum: [deployed, training, ready]
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+
+searchDocuments:
+  post:
+    tags:
+      - Semantic Retrieval
+    summary: Enhanced semantic document retrieval (SQL interface)
+    description: |
+      Search documents using MindsDB's semantic retrieval predictor with SQL interface.
+      Provides advanced semantic search capabilities with grounding validation.
+    operationId: semanticSearchDocuments
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - query
+              - merchantId
+            properties:
+              query:
+                type: string
+                minLength: 1
+                maxLength: 1000
+                description: Search query
+              merchantId:
+                type: string
+                minLength: 3
+                maxLength: 100
+                description: Unique merchant identifier
+              limit:
+                type: integer
+                minimum: 1
+                maximum: 50
+                default: 10
+                description: Maximum number of results
+              threshold:
+                type: number
+                minimum: 0
+                maximum: 1
+                default: 0.7
+                description: Minimum relevance threshold
+              includeMetadata:
+                type: boolean
+                default: true
+                description: Include document metadata in results
+              documentTypes:
+                type: array
+                items:
+                  type: string
+                  enum: [product, faq, policy, review]
+                description: Filter by document types
+    responses:
+      '200':
+        description: Search completed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                results:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      documentId:
+                        type: string
+                        format: uuid
+                      title:
+                        type: string
+                      snippet:
+                        type: string
+                      relevanceScore:
+                        type: number
+                      documentType:
+                        type: string
+                      metadata:
+                        type: object
+                      grounded:
+                        type: boolean
+                        description: Whether the result is grounded in the query
+                totalResults:
+                  type: integer
+                processingTime:
+                  type: number
+                  description: Processing time in milliseconds
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+
+restSearchDocuments:
+  post:
+    tags:
+      - Semantic Retrieval
+    summary: REST API interface for semantic retrieval
+    description: |
+      Search documents using MindsDB's semantic retrieval via REST API.
+      Alternative to SQL interface with simplified response format.
+    operationId: restSemanticSearch
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - query
+              - merchantId
+            properties:
+              query:
+                type: string
+                minLength: 1
+                maxLength: 1000
+                description: Search query
+              merchantId:
+                type: string
+                minLength: 3
+                maxLength: 100
+                description: Unique merchant identifier
+              limit:
+                type: integer
+                minimum: 1
+                maximum: 50
+                default: 10
+                description: Maximum number of results
+              threshold:
+                type: number
+                minimum: 0
+                maximum: 1
+                default: 0.7
+                description: Minimum relevance threshold
+              includeMetadata:
+                type: boolean
+                default: true
+                description: Include document metadata in results
+              documentTypes:
+                type: array
+                items:
+                  type: string
+                  enum: [product, faq, policy, review]
+                description: Filter by document types
+    responses:
+      '200':
+        description: Search completed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      title:
+                        type: string
+                      content:
+                        type: string
+                      score:
+                        type: number
+                      type:
+                        type: string
+                      metadata:
+                        type: object
+                count:
+                  type: integer
+                query:
+                  type: string
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+
+validateGrounding:
+  post:
+    tags:
+      - Semantic Retrieval
+    summary: Validate grounding for retrieved documents
+    description: |
+      Validate whether retrieved documents are properly grounded in the search query.
+      Helps ensure relevance and reduce hallucination in RAG systems.
+    operationId: validateGrounding
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - query
+              - merchantId
+              - documents
+            properties:
+              query:
+                type: string
+                minLength: 1
+                maxLength: 1000
+                description: Original search query
+              merchantId:
+                type: string
+                minLength: 3
+                maxLength: 100
+                description: Unique merchant identifier
+              documents:
+                type: array
+                minItems: 1
+                maxItems: 20
+                items:
+                  type: object
+                  required:
+                    - id
+                    - snippet
+                    - score
+                  properties:
+                    id:
+                      type: string
+                      description: Document ID
+                    snippet:
+                      type: string
+                      description: Document snippet or content
+                    score:
+                      type: number
+                      description: Relevance score
+    responses:
+      '200':
+        description: Grounding validation completed
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                results:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      documentId:
+                        type: string
+                      grounded:
+                        type: boolean
+                        description: Whether document is grounded in query
+                      confidence:
+                        type: number
+                        description: Confidence score (0-1)
+                      explanation:
+                        type: string
+                        description: Explanation of grounding decision
+                overallGrounding:
+                  type: number
+                  description: Overall grounding score for all documents
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+
+getPredictorStatus:
+  get:
+    tags:
+      - Semantic Retrieval
+    summary: Get predictor status and health
+    description: |
+      Retrieve the status and health information of the semantic retrieval predictor
+      for a specific merchant.
+    operationId: getPredictorStatus
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+    responses:
+      '200':
+        description: Predictor status retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                status:
+                  type: string
+                  enum: [active, training, inactive, error]
+                  description: Current predictor status
+                predictorName:
+                  type: string
+                  description: Name of the predictor
+                config:
+                  type: object
+                  properties:
+                    threshold:
+                      type: number
+                    maxResults:
+                      type: integer
+                    groundingValidation:
+                      type: boolean
+                    explainability:
+                      type: boolean
+                    embeddingModel:
+                      type: string
+                metrics:
+                  type: object
+                  properties:
+                    totalQueries:
+                      type: integer
+                    averageLatency:
+                      type: number
+                    successRate:
+                      type: number
+                lastUsed:
+                  type: string
+                  format: date-time
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+      '404':
+        $ref: '../components/schemas.yaml#/components/responses/NotFound'
+
+updatePredictorConfig:
+  put:
+    tags:
+      - Semantic Retrieval
+    summary: Update predictor configuration
+    description: |
+      Update the configuration settings for a merchant's semantic retrieval predictor.
+    operationId: updatePredictorConfig
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - config
+            properties:
+              config:
+                type: object
+                properties:
+                  threshold:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                    description: Minimum relevance threshold
+                  maxResults:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+                    description: Maximum number of results
+                  groundingValidation:
+                    type: boolean
+                    description: Enable grounding validation
+                  explainability:
+                    type: boolean
+                    description: Enable explainability features
+                  embeddingModel:
+                    type: string
+                    description: Embedding model to use
+    responses:
+      '200':
+        description: Configuration updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: Predictor configuration updated successfully
+                config:
+                  type: object
+                  description: Updated configuration
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+      '404':
+        $ref: '../components/schemas.yaml#/components/responses/NotFound'
+
+semanticRetrievalHealth:
+  get:
+    tags:
+      - Semantic Retrieval
+    summary: Health check for semantic retrieval service
+    description: Check the health status of the semantic retrieval service
+    operationId: semanticRetrievalHealthCheck
+    responses:
+      '200':
+        description: Service is healthy
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: healthy
+                timestamp:
+                  type: string
+                  format: date-time
+                service:
+                  type: string
+                  example: semantic-retrieval
+                version:
+                  type: string
+                  example: 1.0.0

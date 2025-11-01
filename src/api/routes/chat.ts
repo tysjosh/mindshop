@@ -1,29 +1,28 @@
-import { Router } from 'express';
-import Joi from 'joi';
-import { chatController } from '../controllers/ChatController';
-import { authenticateJWT } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
-import { rateLimitMiddleware } from '../middleware/rateLimit';
-import { asyncHandler } from '../middleware/errorHandler';
-import { costTrackingMiddleware } from '../middleware/costTracking';
+import { Router } from "express";
+import Joi from "joi";
+import { chatController } from "../controllers/ChatController";
+import { authenticateJWT } from "../middleware/auth";
+import { validateRequest } from "../middleware/validation";
+import { rateLimitMiddleware } from "../middleware/rateLimit";
+import { asyncHandler } from "../middleware/errorHandler";
+import { costTrackingMiddleware } from "../middleware/costTracking";
 
 const router = Router();
 
-// Apply authentication middleware to protected routes
-router.use('/chat', authenticateJWT);
-router.use('/sessions', authenticateJWT);
+// Apply authentication middleware to all routes
+router.use(authenticateJWT());
 
 // Apply rate limiting
 const chatRateLimit = rateLimitMiddleware({
   windowMs: 60 * 1000, // 1 minute
   max: 30, // 30 requests per minute per IP
-  message: 'Too many chat requests from this IP, please try again later.',
+  message: "Too many chat requests from this IP, please try again later.",
 });
 
 const sessionRateLimit = rateLimitMiddleware({
   windowMs: 60 * 1000, // 1 minute
   max: 100, // 100 requests per minute per IP
-  message: 'Too many session requests from this IP, please try again later.',
+  message: "Too many session requests from this IP, please try again later.",
 });
 
 // Validation schemas
@@ -36,13 +35,15 @@ const chatRequestSchema = {
     userContext: Joi.object({
       preferences: Joi.object().optional(),
       purchaseHistory: Joi.array().items(Joi.string()).optional(),
-      currentCart: Joi.array().items(
-        Joi.object({
-          sku: Joi.string().required(),
-          quantity: Joi.number().integer().min(1).required(),
-          price: Joi.number().min(0).required(),
-        })
-      ).optional(),
+      currentCart: Joi.array()
+        .items(
+          Joi.object({
+            sku: Joi.string().required(),
+            quantity: Joi.number().integer().min(1).required(),
+            price: Joi.number().min(0).required(),
+          })
+        )
+        .optional(),
       demographics: Joi.object().optional(),
     }).optional(),
     includeExplainability: Joi.boolean().optional(),
@@ -76,9 +77,9 @@ const deleteSessionSchema = {
  * @access Private (requires authentication)
  */
 router.post(
-  '/chat',
+  "/chat",
   chatRateLimit,
-  costTrackingMiddleware('chat'),
+  costTrackingMiddleware("chat"),
   validateRequest(chatRequestSchema),
   asyncHandler(chatController.chat.bind(chatController))
 );
@@ -89,7 +90,7 @@ router.post(
  * @access Private (requires authentication)
  */
 router.get(
-  '/sessions/:sessionId/history',
+  "/sessions/:sessionId/history",
   sessionRateLimit,
   validateRequest({
     ...sessionIdParamSchema,
@@ -106,7 +107,7 @@ router.get(
  * @access Private (requires authentication)
  */
 router.delete(
-  '/sessions/:sessionId',
+  "/sessions/:sessionId",
   sessionRateLimit,
   validateRequest({
     ...sessionIdParamSchema,
@@ -121,7 +122,7 @@ router.delete(
  * @access Private (requires authentication)
  */
 router.get(
-  '/analytics',
+  "/analytics",
   sessionRateLimit,
   validateRequest({
     query: Joi.object({
@@ -140,7 +141,7 @@ router.get(
  * @access Public
  */
 router.get(
-  '/health',
+  "/health",
   asyncHandler(chatController.healthCheck.bind(chatController))
 );
 

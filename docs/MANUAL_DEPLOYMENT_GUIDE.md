@@ -1957,7 +1957,7 @@ You have two options for deploying Lambda functions:
     - Upload your `mindsdb-rag-api.zip`
     - **Handler**: `lambda/chatHandler.handler`
 
-    **If using Option B (Sample Code):**
+    **If using Option B (Real MindsDB Integration Test):**
     - Replace the default code with:
     ```javascript
     const https = require('https');
@@ -1969,24 +1969,116 @@ You have two options for deploying Lambda functions:
         try {
             // Parse request body
             const body = JSON.parse(event.body || '{}');
-            const { message, sessionId } = body;
+            const { message, query, merchantId, sessionId } = body;
+            const userQuery = message || query;
             
-            if (!message) {
+            if (!userQuery) {
                 return {
                     statusCode: 400,
                     headers: {
                         'Content-Type': 'application/json',
                         'Access-Control-Allow-Origin': '*'
                     },
-                    body: JSON.stringify({ error: 'Message is required' })
+                    body: JSON.stringify({ error: 'Message or query is required' })
                 };
             }
             
-            // Test connection to MindsDB (replace with actual MindsDB API call)
             const mindsdbEndpoint = process.env.MINDSDB_ENDPOINT;
-            console.log('MindsDB endpoint:', mindsdbEndpoint);
+            console.log('Testing MindsDB endpoint:', mindsdbEndpoint);
             
-            // For now, return a mock response
+            // Test MindsDB connectivity with real API call
+            let mindsdbStatus = 'unknown';
+            let mindsdbResponse = null;
+            let testResults = {};
+            
+            if (mindsdbEndpoint) {
+                try {
+                    // Test 1: Health check
+                    console.log('Testing MindsDB health endpoint...');
+                    const healthResponse = await makeHttpRequest(`${mindsdbEndpoint}/api/status`, 'GET');
+                    testResults.health_check = {
+                        status: 'success',
+                        response: healthResponse
+                    };
+                    mindsdbStatus = 'healthy';
+                    
+                    // Test 2: Simple SQL query
+                    console.log('Testing MindsDB SQL query...');
+                    const sqlQuery = 'SHOW DATABASES;';
+                    const queryResponse = await makeHttpRequest(`${mindsdbEndpoint}/api/sql/query`, 'POST', {
+                        query: sqlQuery
+                    });
+                    testResults.sql_query = {
+                        status: 'success',
+                        query: sqlQuery,
+                        response: queryResponse
+                    };
+                    
+                    // Test 3: List predictors (if any exist)
+                    console.log('Testing MindsDB predictors list...');
+                    const predictorsQuery = 'SHOW MODELS;';
+                    const predictorsResponse = await makeHttpRequest(`${mindsdbEndpoint}/api/sql/query`, 'POST', {
+                        query: predictorsQuery
+                    });
+                    testResults.predictors_list = {
+                        status: 'success',
+                        query: predictorsQuery,
+                        response: predictorsResponse
+                    };
+                    
+                    // Test 4: Check for merchant-specific resources
+                    if (merchantId) {
+                        console.log(`Testing merchant-specific resources for: ${merchantId}`);
+                        const merchantQuery = `SELECT * FROM information_schema.tables WHERE table_name LIKE '%${merchantId}%' LIMIT 5;`;
+                        try {
+                            const merchantResponse = await makeHttpRequest(`${mindsdbEndpoint}/api/sql/query`, 'POST', {
+                                query: merchantQuery
+                            });
+                            testResults.merchant_resources = {
+                                status: 'success',
+                                query: merchantQuery,
+                                response: merchantResponse
+                            };
+                        } catch (merchantError) {
+                            testResults.merchant_resources = {
+                                status: 'no_resources',
+                                error: merchantError.message
+                            };
+                        }
+                    }
+                    
+                    mindsdbResponse = `MindsDB is operational! Successfully executed ${Object.keys(testResults).length} tests.`;
+                    
+                } catch (mindsdbError) {
+                    console.error('MindsDB connection failed:', mindsdbError);
+                    mindsdbStatus = 'unhealthy';
+                    testResults.connection_error = {
+                        status: 'failed',
+                        error: mindsdbError.message
+                    };
+                    mindsdbResponse = `MindsDB connection failed: ${mindsdbError.message}`;
+                }
+            } else {
+                mindsdbStatus = 'not_configured';
+                mindsdbResponse = 'MindsDB endpoint not configured';
+            }
+            
+            // Generate intelligent response based on test results
+            let aiResponse;
+            if (mindsdbStatus === 'healthy') {
+                aiResponse = `I've successfully connected to MindsDB and can help you with: ${userQuery}. 
+                
+The system is operational with the following capabilities:
+- Database connectivity: ✅ Working
+- SQL query execution: ✅ Working  
+- Model management: ✅ Available
+${merchantId ? `- Merchant resources (${merchantId}): ${testResults.merchant_resources?.status === 'success' ? '✅ Found' : '⚠️ None found'}` : ''}
+
+How can I assist you further?`;
+            } else {
+                aiResponse = `I received your query: "${userQuery}", but I'm currently experiencing connectivity issues with MindsDB (${mindsdbStatus}). Please try again later or contact support.`;
+            }
+            
             const response = {
                 statusCode: 200,
                 headers: {
@@ -1994,10 +2086,112 @@ You have two options for deploying Lambda functions:
                     'Access-Control-Allow-Origin': '*'
                 },
                 body: JSON.stringify({
-                    response: `Echo: ${message}`,
-                    sessionId: sessionId || 'new-session',
-                    timestamp: new Date().toISOString(),
-                    mindsdbEndpoint: mindsdbEndpoint
+                    success: true,
+                    data: {
+                        response: aiResponse,
+                        query: userQuery,
+                        merchantId: merchantId || 'not_specified',
+                        sessionId: sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                        mindsdb_status: mindsdbStatus,
+                        mindsdb_endpoint: mindsdbEndpoint,
+                        test_results: testResults,
+                        confidence: mindsdbStatus === 'healthy' ? 0.9 : 0.3,
+                        sources: mindsdbStatus === 'healthy' ? ['MindsDB System Status', 'Real-time Connectivity Test'] : [],
+                        reasoning: [
+                            'Performed real MindsDB connectivity test',
+                            `MindsDB status: ${mindsdbStatus}`,
+                            'Generated response based on system availability'
+                        ]
+                    },
+                    timestamp: new Date().toISOString()
+                })
+            };
+            
+            console.log('Chat response generated:', JSON.stringify(response.body, null, 2));
+            return response;
+            
+        } catch (error) {
+            console.error('Chat API error:', error);
+            return {
+                statusCode: 500,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({ 
+                    success: false,
+                    error: 'Internal server error',
+                    message: error.message,
+                    timestamp: new Date().toISOString()
+                })
+            };
+        }
+    };
+    
+    // Helper function to make HTTP requests to MindsDB
+    function makeHttpRequest(url, method = 'GET', data = null) {
+        return new Promise((resolve, reject) => {
+            const urlObj = new URL(url);
+            const options = {
+                hostname: urlObj.hostname,
+                port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
+                path: urlObj.pathname + urlObj.search,
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'MindsDB-Lambda-Test/1.0'
+                },
+                timeout: 10000 // 10 second timeout
+            };
+            
+            if (data) {
+                const postData = JSON.stringify(data);
+                options.headers['Content-Length'] = Buffer.byteLength(postData);
+            }
+            
+            const client = urlObj.protocol === 'https:' ? https : http;
+            const req = client.request(options, (res) => {
+                let responseData = '';
+                
+                res.on('data', (chunk) => {
+                    responseData += chunk;
+                });
+                
+                res.on('end', () => {
+                    try {
+                        const parsed = JSON.parse(responseData);
+                        if (res.statusCode >= 200 && res.statusCode < 300) {
+                            resolve(parsed);
+                        } else {
+                            reject(new Error(`HTTP ${res.statusCode}: ${parsed.error || responseData}`));
+                        }
+                    } catch (parseError) {
+                        if (res.statusCode >= 200 && res.statusCode < 300) {
+                            resolve(responseData); // Return raw response if not JSON
+                        } else {
+                            reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
+                        }
+                    }
+                });
+            });
+            
+            req.on('error', (error) => {
+                reject(new Error(`Request failed: ${error.message}`));
+            });
+            
+            req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('Request timeout'));
+            });
+            
+            if (data) {
+                req.write(JSON.stringify(data));
+            }
+            
+            req.end();
+        });
+    }
+    ```
                 })
             };
             
@@ -2040,16 +2234,184 @@ You have two options for deploying Lambda functions:
     - Upload your `mindsdb-rag-api.zip`
     - **Handler**: `lambda/documentsHandler.handler`
 
-    **If using Option B (Sample Code):**
+    **If using Option B (Real Document Processing Test):**
     ```javascript
+    const https = require('https');
+    const http = require('http');
+    
     exports.handler = async (event) => {
         console.log('Documents API request:', JSON.stringify(event, null, 2));
         
         try {
             const body = JSON.parse(event.body || '{}');
-            const { document, type, action } = body;
+            const { content, title, merchantId, action = 'create' } = body;
             
-            // Mock document processing
+            if (!merchantId) {
+                return {
+                    statusCode: 400,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify({ error: 'merchantId is required' })
+                };
+            }
+            
+            const mindsdbEndpoint = process.env.MINDSDB_ENDPOINT;
+            console.log('Testing document processing with MindsDB endpoint:', mindsdbEndpoint);
+            
+            let testResults = {};
+            let documentId = `doc_${merchantId}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+            
+            if (mindsdbEndpoint) {
+                try {
+                    // Test 1: Check if knowledge base exists for merchant
+                    console.log(`Checking knowledge base for merchant: ${merchantId}`);
+                    const kbCheckQuery = `SHOW TABLES LIKE 'rag_kb_${merchantId}';`;
+                    const kbResponse = await makeHttpRequest(`${mindsdbEndpoint}/api/sql/query`, 'POST', {
+                        query: kbCheckQuery
+                    });
+                    
+                    testResults.knowledge_base_check = {
+                        status: 'success',
+                        exists: kbResponse.data && kbResponse.data.length > 0,
+                        response: kbResponse
+                    };
+                    
+                    // Test 2: Create knowledge base if it doesn't exist
+                    if (!testResults.knowledge_base_check.exists) {
+                        console.log(`Creating knowledge base for merchant: ${merchantId}`);
+                        const createKBQuery = `
+                            CREATE OR REPLACE MODEL rag_kb_${merchantId}
+                            PREDICT answer
+                            USING
+                                engine = 'langchain',
+                                mode = 'conversational',
+                                user_column = 'question',
+                                assistant_column = 'answer',
+                                max_tokens = 1000,
+                                model_name = 'gpt-3.5-turbo',
+                                prompt_template = 'Answer the user question based on the context: {{context}}. Question: {{question}}';
+                        `;
+                        
+                        try {
+                            const createResponse = await makeHttpRequest(`${mindsdbEndpoint}/api/sql/query`, 'POST', {
+                                query: createKBQuery
+                            });
+                            testResults.knowledge_base_creation = {
+                                status: 'success',
+                                response: createResponse
+                            };
+                        } catch (createError) {
+                            testResults.knowledge_base_creation = {
+                                status: 'failed',
+                                error: createError.message
+                            };
+                        }
+                    }
+                    
+                    // Test 3: Process document content if provided
+                    if (content && action === 'create') {
+                        console.log('Processing document content...');
+                        
+                        // Create a documents table for the merchant if it doesn't exist
+                        const createTableQuery = `
+                            CREATE TABLE IF NOT EXISTS documents_${merchantId} (
+                                document_id VARCHAR(255) PRIMARY KEY,
+                                title VARCHAR(500),
+                                content TEXT,
+                                document_type VARCHAR(100),
+                                source VARCHAR(255),
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                metadata JSON
+                            );
+                        `;
+                        
+                        try {
+                            const tableResponse = await makeHttpRequest(`${mindsdbEndpoint}/api/sql/query`, 'POST', {
+                                query: createTableQuery
+                            });
+                            testResults.table_creation = {
+                                status: 'success',
+                                response: tableResponse
+                            };
+                            
+                            // Insert document into table
+                            const insertQuery = `
+                                INSERT INTO documents_${merchantId} 
+                                (document_id, title, content, document_type, source, metadata)
+                                VALUES (
+                                    '${documentId}',
+                                    '${title || 'Untitled Document'}',
+                                    '${content.replace(/'/g, "''")}',
+                                    'text',
+                                    'api',
+                                    '{"processed_by": "lambda", "test_mode": true}'
+                                );
+                            `;
+                            
+                            const insertResponse = await makeHttpRequest(`${mindsdbEndpoint}/api/sql/query`, 'POST', {
+                                query: insertQuery
+                            });
+                            testResults.document_insertion = {
+                                status: 'success',
+                                document_id: documentId,
+                                response: insertResponse
+                            };
+                            
+                        } catch (tableError) {
+                            testResults.table_creation = {
+                                status: 'failed',
+                                error: tableError.message
+                            };
+                        }
+                    }
+                    
+                    // Test 4: Query existing documents for the merchant
+                    console.log(`Querying existing documents for merchant: ${merchantId}`);
+                    const queryDocsQuery = `SELECT COUNT(*) as document_count FROM documents_${merchantId};`;
+                    try {
+                        const docsResponse = await makeHttpRequest(`${mindsdbEndpoint}/api/sql/query`, 'POST', {
+                            query: queryDocsQuery
+                        });
+                        testResults.document_query = {
+                            status: 'success',
+                            response: docsResponse
+                        };
+                    } catch (queryError) {
+                        testResults.document_query = {
+                            status: 'no_table',
+                            error: queryError.message
+                        };
+                    }
+                    
+                } catch (mindsdbError) {
+                    console.error('MindsDB document processing failed:', mindsdbError);
+                    testResults.connection_error = {
+                        status: 'failed',
+                        error: mindsdbError.message
+                    };
+                }
+            }
+            
+            // Generate response based on test results
+            const successfulTests = Object.values(testResults).filter(test => test.status === 'success').length;
+            const totalTests = Object.keys(testResults).length;
+            
+            let message;
+            let processingStatus;
+            
+            if (successfulTests === totalTests && totalTests > 0) {
+                message = `Document processed successfully! All ${totalTests} MindsDB integration tests passed.`;
+                processingStatus = 'completed';
+            } else if (successfulTests > 0) {
+                message = `Document partially processed. ${successfulTests}/${totalTests} tests passed.`;
+                processingStatus = 'partial';
+            } else {
+                message = 'Document received but MindsDB integration tests failed.';
+                processingStatus = 'failed';
+            }
+            
             const response = {
                 statusCode: 200,
                 headers: {
@@ -2057,10 +2419,19 @@ You have two options for deploying Lambda functions:
                     'Access-Control-Allow-Origin': '*'
                 },
                 body: JSON.stringify({
-                    message: 'Document processed successfully',
-                    documentId: 'doc-' + Date.now(),
-                    type: type || 'unknown',
-                    action: action || 'upload',
+                    success: successfulTests > 0,
+                    data: {
+                        message,
+                        documentId,
+                        merchantId,
+                        title: title || 'Untitled Document',
+                        action,
+                        processing_status: processingStatus,
+                        mindsdb_endpoint: mindsdbEndpoint,
+                        test_results: testResults,
+                        tests_passed: `${successfulTests}/${totalTests}`,
+                        content_preview: content ? content.substring(0, 100) + '...' : 'No content provided'
+                    },
                     timestamp: new Date().toISOString()
                 })
             };
@@ -2075,10 +2446,79 @@ You have two options for deploying Lambda functions:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                body: JSON.stringify({ error: 'Internal server error' })
+                body: JSON.stringify({ 
+                    success: false,
+                    error: 'Internal server error',
+                    message: error.message,
+                    timestamp: new Date().toISOString()
+                })
             };
         }
     };
+    
+    // Helper function to make HTTP requests to MindsDB
+    function makeHttpRequest(url, method = 'GET', data = null) {
+        return new Promise((resolve, reject) => {
+            const urlObj = new URL(url);
+            const options = {
+                hostname: urlObj.hostname,
+                port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
+                path: urlObj.pathname + urlObj.search,
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'MindsDB-Lambda-Test/1.0'
+                },
+                timeout: 15000 // 15 second timeout for document operations
+            };
+            
+            if (data) {
+                const postData = JSON.stringify(data);
+                options.headers['Content-Length'] = Buffer.byteLength(postData);
+            }
+            
+            const client = urlObj.protocol === 'https:' ? https : http;
+            const req = client.request(options, (res) => {
+                let responseData = '';
+                
+                res.on('data', (chunk) => {
+                    responseData += chunk;
+                });
+                
+                res.on('end', () => {
+                    try {
+                        const parsed = JSON.parse(responseData);
+                        if (res.statusCode >= 200 && res.statusCode < 300) {
+                            resolve(parsed);
+                        } else {
+                            reject(new Error(`HTTP ${res.statusCode}: ${parsed.error || responseData}`));
+                        }
+                    } catch (parseError) {
+                        if (res.statusCode >= 200 && res.statusCode < 300) {
+                            resolve(responseData);
+                        } else {
+                            reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
+                        }
+                    }
+                });
+            });
+            
+            req.on('error', (error) => {
+                reject(new Error(`Request failed: ${error.message}`));
+            });
+            
+            req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('Request timeout'));
+            });
+            
+            if (data) {
+                req.write(JSON.stringify(data));
+            }
+            
+            req.end();
+        });
+    }
     ```
 
 **Function 4: Bedrock Agent Function:**
@@ -2102,53 +2542,45 @@ You have two options for deploying Lambda functions:
     - Upload your `mindsdb-rag-api.zip`
     - **Handler**: `lambda/bedrockHandler.handler`
 
-    **If using Option B (Sample Code):**
+    **If using Option B (Real Bedrock Integration Test):**
     ```javascript
+    const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
+    
     exports.handler = async (event) => {
         console.log('Bedrock Agent API request:', JSON.stringify(event, null, 2));
         
         try {
             const body = JSON.parse(event.body || '{}');
-            const { query, agentId, sessionId } = body;
+            const { query, prompt, merchantId, sessionId, modelId } = body;
+            const userQuery = query || prompt || 'Test Bedrock connectivity';
             
-            // Mock Bedrock agent response
-            const response = {
-                statusCode: 200,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                body: JSON.stringify({
-                    agentId: agentId || 'test-agent',
-                    sessionId: sessionId || 'new-session',
-                    query: query || 'test query',
-                    result: 'Bedrock agent processed your request successfully',
-                    timestamp: new Date().toISOString(),
-                    region: process.env.BEDROCK_REGION
-                })
-            };
+            const bedrockRegion = process.env.BEDROCK_REGION || 'us-east-2';
+            const defaultModelId = modelId || 'amazon.nova-micro-v1:0';
             
-            return response;
+            console.log(`Testing Bedrock in region: ${bedrockRegion} with model: ${defaultModelId}`);
             
-        } catch (error) {
-            console.error('Bedrock Agent API error:', error);
-            return {
-                statusCode: 500,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                body: JSON.stringify({ error: 'Internal server error' })
-            };
-        }
-    };
-    ```
+            let testResults = {};
+            let bedrockResponse = null;
+            
+            try {
+                // Initialize Bedrock Runtime client
+                const bedrockClient = new BedrockRuntimeClient({ 
+                    region: bedrockRegion,
+                    maxAttempts: 3
+                });
+                
+                // Test 1: List available models (using Bedrock client)
+                console.log('Testing Bedrock model availability...');
+                
+                // Test 2: Invoke model with a simple prompt
+                console.log(`Invoking Bedrock model: ${defaultModelId}`);
+                
+                const promptText = `Human: You are a helpful AI assistant for an e-commerce platform. 
+                
+User Query: ${userQuery}
+${merchantId ? `Merchant Context: This query is from merchant ${merchantId}` : ''}
 
-**Function 5: Semantic Retrieval Function:**
-
-31. **Create function**: 
-    - Click **"Create function"** (create a new function)
-    - **Function name**: `mindsdb-rag-semantic-api-dev`
+Please provide a helpful response. Keep it concise and professional.
     - **Runtime**: `Node.js 18.x`
     - **Permissions**: **"Use an existing role"** → Select `mindsdb-rag-lambda-execution-role-dev`
     - Click **"Create function"**

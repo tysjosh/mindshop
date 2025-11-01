@@ -1,0 +1,433 @@
+# RAG System API Endpoints
+
+initializeRAGSystem:
+  post:
+    tags:
+      - RAG System
+    summary: Initialize RAG system for a merchant
+    description: |
+      Initialize the RAG (Retrieval-Augmented Generation) system for a merchant.
+      Sets up vector embeddings, document indexing, and ML model integration.
+    operationId: initializeRAGSystem
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              embeddingModel:
+                type: string
+                default: text-embedding-ada-002
+                description: Embedding model to use
+              chunkSize:
+                type: integer
+                default: 512
+                description: Document chunk size for embeddings
+              chunkOverlap:
+                type: integer
+                default: 50
+                description: Overlap between chunks
+              indexType:
+                type: string
+                enum: [ivfflat, hnsw]
+                default: ivfflat
+                description: Vector index type
+    responses:
+      '200':
+        description: RAG system initialized successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: RAG system initialized successfully
+                config:
+                  type: object
+                  properties:
+                    embeddingModel:
+                      type: string
+                    chunkSize:
+                      type: integer
+                    indexType:
+                      type: string
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+
+getRAGSystemStatus:
+  get:
+    tags:
+      - RAG System
+    summary: Get RAG system status
+    description: Retrieve the current status and configuration of the RAG system for a merchant
+    operationId: getRAGSystemStatus
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+    responses:
+      '200':
+        description: RAG system status retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                initialized:
+                  type: boolean
+                  description: Whether RAG system is initialized
+                documentCount:
+                  type: integer
+                  description: Total number of indexed documents
+                embeddingCount:
+                  type: integer
+                  description: Total number of embeddings
+                config:
+                  type: object
+                  properties:
+                    embeddingModel:
+                      type: string
+                    chunkSize:
+                      type: integer
+                    indexType:
+                      type: string
+                lastIndexed:
+                  type: string
+                  format: date-time
+                  description: Last time documents were indexed
+                health:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                      enum: [healthy, degraded, unhealthy]
+                    issues:
+                      type: array
+                      items:
+                        type: string
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+      '404':
+        $ref: '../components/schemas.yaml#/components/responses/NotFound'
+
+ingestDocument:
+  post:
+    tags:
+      - RAG System
+    summary: Ingest a document into RAG system
+    description: |
+      Add a new document to the RAG system. The document will be chunked,
+      embedded, and indexed for semantic search.
+    operationId: ingestDocument
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - title
+              - body
+              - documentType
+            properties:
+              sku:
+                type: string
+                maxLength: 100
+                description: Product SKU (for product documents)
+              title:
+                type: string
+                minLength: 1
+                maxLength: 500
+                description: Document title
+              body:
+                type: string
+                minLength: 1
+                maxLength: 10000
+                description: Document content
+              documentType:
+                type: string
+                enum: [product, faq, policy, review]
+                description: Type of document
+              metadata:
+                type: object
+                description: Additional metadata
+    responses:
+      '201':
+        description: Document ingested successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                documentId:
+                  type: string
+                  format: uuid
+                chunksCreated:
+                  type: integer
+                  description: Number of chunks created
+                embeddingsGenerated:
+                  type: integer
+                  description: Number of embeddings generated
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+
+ingestDocumentFromUrl:
+  post:
+    tags:
+      - RAG System
+    summary: Ingest a document from URL
+    description: |
+      Fetch and ingest a document from a URL. Supports HTML, PDF, and text formats.
+    operationId: ingestDocumentFromUrl
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - url
+              - documentType
+            properties:
+              url:
+                type: string
+                format: uri
+                description: URL of the document to ingest
+              documentType:
+                type: string
+                enum: [product, faq, policy, review]
+                description: Type of document
+              title:
+                type: string
+                maxLength: 500
+                description: Optional title (extracted from content if not provided)
+              metadata:
+                type: object
+                description: Additional metadata
+    responses:
+      '201':
+        description: Document ingested successfully from URL
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                documentId:
+                  type: string
+                  format: uuid
+                title:
+                  type: string
+                chunksCreated:
+                  type: integer
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+
+findSimilarDocuments:
+  get:
+    tags:
+      - RAG System
+    summary: Find similar documents
+    description: |
+      Find documents similar to a given document using vector similarity search.
+    operationId: findSimilarDocuments
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Document ID to find similar documents for
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+        description: Maximum number of similar documents to return
+      - name: threshold
+        in: query
+        schema:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.7
+        description: Minimum similarity threshold
+    responses:
+      '200':
+        description: Similar documents retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                documents:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      documentId:
+                        type: string
+                        format: uuid
+                      title:
+                        type: string
+                      similarityScore:
+                        type: number
+                        description: Similarity score (0-1)
+                      snippet:
+                        type: string
+                        description: Relevant content snippet
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'
+      '404':
+        $ref: '../components/schemas.yaml#/components/responses/NotFound'
+
+askQuestion:
+  post:
+    tags:
+      - RAG System
+    summary: Ask a question using RAG
+    description: |
+      Ask a question and get an AI-generated answer based on the merchant's
+      document knowledge base using RAG.
+    operationId: askQuestion
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description: Unique merchant identifier
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - question
+            properties:
+              question:
+                type: string
+                minLength: 1
+                maxLength: 2000
+                description: The question to ask
+              maxDocuments:
+                type: integer
+                minimum: 1
+                maximum: 20
+                default: 5
+                description: Maximum number of context documents to use
+              includeExplainability:
+                type: boolean
+                default: true
+                description: Include explanation of how answer was generated
+              temperature:
+                type: number
+                minimum: 0
+                maximum: 1
+                default: 0.7
+                description: Model temperature for response generation
+    responses:
+      '200':
+        description: Question answered successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answer:
+                  type: string
+                  description: The generated answer
+                confidence:
+                  type: number
+                  description: Confidence score (0-1)
+                sources:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      documentId:
+                        type: string
+                        format: uuid
+                      title:
+                        type: string
+                      relevanceScore:
+                        type: number
+                      snippet:
+                        type: string
+                explanation:
+                  type: string
+                  description: Explanation of how the answer was generated
+                metadata:
+                  type: object
+                  properties:
+                    documentsUsed:
+                      type: integer
+                    tokensUsed:
+                      type: integer
+                    processingTime:
+                      type: number
+      '400':
+        $ref: '../components/schemas.yaml#/components/responses/BadRequest'
+      '401':
+        $ref: '../components/schemas.yaml#/components/responses/Unauthorized'

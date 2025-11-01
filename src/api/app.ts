@@ -109,29 +109,9 @@ export class APIGatewayApp {
     // Cost tracking and session monitoring
     this.app.use(sessionCostCheckMiddleware());
 
-    // Authentication middleware
-    if (this.config.enableCognito && this.config.cognitoUserPoolId) {
-      // Use Cognito JWT verification
-      this.app.use(
-        "/api",
-        cognitoAuthMiddleware({
-          userPoolId: this.config.cognitoUserPoolId,
-          clientId: this.config.cognitoClientId,
-          region: this.config.awsRegion,
-        })
-      );
-    } else {
-      // Use the updated auth middleware with mock support for development
-      this.app.use(
-        "/api",
-        createAuthMiddleware({
-          userPoolId: this.config.cognitoUserPoolId || 'dev-pool',
-          clientId: this.config.cognitoClientId,
-          region: this.config.awsRegion,
-          enableMockAuth: this.config.enableMockAuth || this.config.environment === 'development',
-        })
-      );
-    }
+    // Note: Authentication is applied at the route level, not globally
+    // This allows for more granular control over which routes require auth
+    // See individual route files for auth middleware configuration
   }
 
   private setupRoutes(): void {

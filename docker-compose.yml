@@ -99,6 +99,18 @@ services:
         reservations:
           memory: 512M
 
+  mindsdb:
+    image: mindsdb/mindsdb:latest
+    ports:
+      - "47334:47334"
+    volumes:
+      - mindsdb_data:/root/mindsdb_storage
+    environment:
+      - MINDSDB_STORAGE_PATH=/root/mindsdb_storage
+    restart: unless-stopped
+
+
 volumes:
   postgres_data:
   redis_data:
+  mindsdb_data:

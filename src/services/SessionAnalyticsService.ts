@@ -92,8 +92,8 @@ export interface BillingData {
 }
 
 export class SessionAnalyticsService {
-  private dynamoClient: DynamoDBClient;
-  private cloudWatchClient: CloudWatchClient;
+  private dynamoClient?: DynamoDBClient;
+  private cloudWatchClient?: CloudWatchClient;
   private sessionManager: SessionManager;
   private auditLogRepository: AuditLogRepository;
   private tableName: string;
@@ -105,8 +105,15 @@ export class SessionAnalyticsService {
   private readonly COST_PER_COMPUTE_HOUR = 0.10; // $0.10 per compute hour
 
   constructor() {
-    this.dynamoClient = new DynamoDBClient({ region: config.aws.region });
-    this.cloudWatchClient = new CloudWatchClient({ region: config.aws.region });
+    // Skip DynamoDB/CloudWatch initialization in development with Postgres
+    const usePostgres = process.env.USE_POSTGRES_SESSIONS === 'true' ||
+                        (process.env.NODE_ENV === 'development' && process.env.USE_POSTGRES_SESSIONS !== 'false');
+    
+    if (!usePostgres) {
+      this.dynamoClient = new DynamoDBClient({ region: config.aws.region });
+      this.cloudWatchClient = new CloudWatchClient({ region: config.aws.region });
+    }
+    
     this.sessionManager = createSessionManager();
     this.auditLogRepository = new AuditLogRepository();
     this.tableName = process.env.SESSION_TABLE_NAME || 'mindsdb-rag-sessions-dev';
@@ -245,6 +252,9 @@ export class SessionAnalyticsService {
       }),
     });
 
+    if (!this.dynamoClient) {
+      return [];
+    }
     const result = await this.dynamoClient.send(command);
     return result.Items?.map(item => unmarshall(item)) || [];
   }
@@ -441,10 +451,12 @@ export class SessionAnalyticsService {
       },
     ];
 
-    await this.cloudWatchClient.send(new PutMetricDataCommand({
-      Namespace: 'MindsDB/RAGAssistant',
-      MetricData: metrics,
-    }));
+    if (this.cloudWatchClient) {
+      await this.cloudWatchClient.send(new PutMetricDataCommand({
+        Namespace: 'MindsDB/RAGAssistant',
+        MetricData: metrics,
+      }));
+    }
   }
 
   /**

@@ -26,8 +26,17 @@ interface AuthConfig {
 export function createAuthMiddleware(config: AuthConfig) {
   // If mock auth is enabled (for development), use simplified version
   if (config.enableMockAuth) {
+    console.log('🔓 Using mock authentication for development');
     return mockAuthMiddleware;
   }
+
+  // Validate required config for Cognito
+  if (!config.userPoolId || config.userPoolId === 'dev-pool') {
+    console.warn('⚠️  No valid Cognito User Pool ID provided, falling back to mock auth');
+    return mockAuthMiddleware;
+  }
+
+  console.log('🔒 Using Cognito JWT authentication');
 
   // Create JWT verifiers for both access and ID tokens
   const accessTokenVerifier = CognitoJwtVerifier.create({
@@ -43,11 +52,9 @@ export function createAuthMiddleware(config: AuthConfig) {
   });
 
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    // Skip auth for health checks and public endpoints
-    if (req.path === '/health' || req.path === '/ready' || req.path === '/live' || req.path === '/startup') {
-      return next();
-    }
-
+    // Note: With route-level auth, path-based skipping is not needed
+    // Public routes (health checks, bedrock-agent) simply don't apply this middleware
+    
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -121,8 +128,22 @@ export function createAuthMiddleware(config: AuthConfig) {
 /**
  * Legacy authenticateJWT function for backward compatibility
  * Now uses Cognito verification
+ * If called without config, uses environment variables
  */
-export function authenticateJWT(config: AuthConfig) {
+export function authenticateJWT(config?: AuthConfig) {
+  // If no config provided, create from environment variables
+  if (!config) {
+    const enableMockAuth = process.env.NODE_ENV === 'development' && 
+                          process.env.ENABLE_COGNITO_AUTH !== 'true';
+    
+    config = {
+      userPoolId: process.env.COGNITO_USER_POOL_ID || 'dev-pool',
+      clientId: process.env.COGNITO_CLIENT_ID,
+      region: process.env.COGNITO_REGION || process.env.AWS_REGION || 'us-east-1',
+      enableMockAuth: enableMockAuth,
+    };
+  }
+  
   return createAuthMiddleware(config);
 }
 
@@ -130,11 +151,9 @@ export function authenticateJWT(config: AuthConfig) {
  * Mock authentication middleware for development/testing
  */
 const mockAuthMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  // Skip auth for health checks
-  if (req.path === '/health' || req.path === '/ready' || req.path === '/live' || req.path === '/startup') {
-    return next();
-  }
-
+  // Note: With route-level auth, path-based skipping is not needed
+  // Public routes (health checks, bedrock-agent) simply don't apply this middleware
+  
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

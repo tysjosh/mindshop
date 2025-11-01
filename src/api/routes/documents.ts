@@ -9,7 +9,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 const router = Router();
 
 // Apply authentication middleware to all routes
-router.use(authenticateJWT);
+router.use(authenticateJWT());
 
 // Apply rate limiting
 const documentRateLimit = rateLimitMiddleware({
@@ -28,11 +28,10 @@ const bulkUploadRateLimit = rateLimitMiddleware({
 const createDocumentSchema = {
   body: Joi.object({
     merchantId: Joi.string().required().min(3).max(100),
-    sku: Joi.string().optional().min(1).max(100),
-    title: Joi.string().required().min(1).max(500),
-    body: Joi.string().required().min(1).max(10000),
-    documentType: Joi.string().required().valid('product', 'faq', 'policy', 'review'),
-    metadata: Joi.object().optional(),
+    content: Joi.string().required().min(1).max(10000),
+    title: Joi.string().optional().min(1).max(500),
+    source: Joi.string().optional().min(1).max(200),
+    document_type: Joi.string().optional().valid('product', 'faq', 'policy', 'review', 'text'),
   }),
 };
 
@@ -50,6 +49,12 @@ const documentIdParamSchema = {
   }),
 };
 
+const merchantIdParamsSchema = {
+  params: Joi.object({
+    merchantId: Joi.string().required().min(3).max(100),
+  }),
+};
+
 const merchantIdQuerySchema = {
   query: Joi.object({
     merchantId: Joi.string().required().min(3).max(100),
@@ -57,13 +62,13 @@ const merchantIdQuerySchema = {
 };
 
 const searchDocumentsSchema = {
-  query: Joi.object({
+  body: Joi.object({
     merchantId: Joi.string().required().min(3).max(100),
-    query: Joi.string().optional().min(1).max(1000),
-    documentType: Joi.string().optional().valid('product', 'faq', 'policy', 'review'),
-    sku: Joi.string().optional().min(1).max(100),
+    query: Joi.string().required().min(1).max(1000),
     limit: Joi.number().integer().min(1).max(100).optional(),
-    offset: Joi.number().integer().min(0).optional(),
+    threshold: Joi.number().min(0).max(1).optional(),
+    useHybridSearch: Joi.boolean().optional(),
+    filters: Joi.object().optional(),
   }),
 };
 
@@ -89,6 +94,40 @@ const deleteDocumentSchema = {
 };
 
 /**
+ * @route GET /api/documents/health
+ * @desc Health check endpoint
+ * @access Public
+ */
+router.get(
+  '/health',
+  asyncHandler(documentController.healthCheck.bind(documentController))
+);
+
+/**
+ * @route POST /api/documents/search
+ * @desc Search documents
+ * @access Private (requires authentication)
+ */
+router.post(
+  '/search',
+  documentRateLimit,
+  validateRequest(searchDocumentsSchema),
+  asyncHandler(documentController.searchDocuments.bind(documentController))
+);
+
+/**
+ * @route GET /api/documents/stats
+ * @desc Get document statistics for a merchant
+ * @access Private (requires authentication)
+ */
+router.get(
+  '/stats',
+  documentRateLimit,
+  validateRequest(merchantIdQuerySchema),
+  asyncHandler(documentController.getDocumentStats.bind(documentController))
+);
+
+/**
  * @route POST /api/documents
  * @desc Create a new document
  * @access Private (requires authentication)
@@ -98,6 +137,18 @@ router.post(
   documentRateLimit,
   validateRequest(createDocumentSchema),
   asyncHandler(documentController.createDocument.bind(documentController))
+);
+
+/**
+ * @route POST /api/documents/bulk
+ * @desc Bulk upload documents
+ * @access Private (requires authentication)
+ */
+router.post(
+  '/bulk',
+  bulkUploadRateLimit,
+  validateRequest(bulkUploadSchema),
+  asyncHandler(documentController.bulkUploadDocuments.bind(documentController))
 );
 
 /**
@@ -146,52 +197,6 @@ router.delete(
     ...deleteDocumentSchema,
   }),
   asyncHandler(documentController.deleteDocument.bind(documentController))
-);
-
-/**
- * @route GET /api/documents/search
- * @desc Search documents
- * @access Private (requires authentication)
- */
-router.get(
-  '/search',
-  documentRateLimit,
-  validateRequest(searchDocumentsSchema),
-  asyncHandler(documentController.searchDocuments.bind(documentController))
-);
-
-/**
- * @route POST /api/documents/bulk
- * @desc Bulk upload documents
- * @access Private (requires authentication)
- */
-router.post(
-  '/bulk',
-  bulkUploadRateLimit,
-  validateRequest(bulkUploadSchema),
-  asyncHandler(documentController.bulkUploadDocuments.bind(documentController))
-);
-
-/**
- * @route GET /api/documents/stats
- * @desc Get document statistics for a merchant
- * @access Private (requires authentication)
- */
-router.get(
-  '/stats',
-  documentRateLimit,
-  validateRequest(merchantIdQuerySchema),
-  asyncHandler(documentController.getDocumentStats.bind(documentController))
-);
-
-/**
- * @route GET /api/documents/health
- * @desc Health check endpoint
- * @access Public
- */
-router.get(
-  '/health',
-  asyncHandler(documentController.healthCheck.bind(documentController))
 );
 
 export default router;

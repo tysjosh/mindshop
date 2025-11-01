@@ -130,18 +130,39 @@ export class ChatController {
       };
 
       // Log successful chat interaction
-      await this.auditLogRepository.create({
-        merchantId,
-        userId: effectiveUserId,
-        sessionId: effectiveSessionId,
-        operation: 'chat_interaction',
-        requestPayloadHash: this.hashPayload({ query, merchantId }),
-        responseReference: `session:${effectiveSessionId}`,
-        outcome: 'success',
-        actor: 'user',
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-      });
+      if (process.env.NODE_ENV === 'production') {
+        // In production, fail fast if audit logging fails
+        await this.auditLogRepository.create({
+          merchantId,
+          userId: effectiveUserId,
+          sessionId: effectiveSessionId,
+          operation: 'chat_interaction',
+          requestPayloadHash: this.hashPayload({ query, merchantId }),
+          responseReference: `session:${effectiveSessionId}`,
+          outcome: 'success',
+          actor: 'user',
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent'),
+        });
+      } else {
+        // In development, gracefully handle audit logging failures
+        try {
+          await this.auditLogRepository.create({
+            merchantId,
+            userId: effectiveUserId,
+            sessionId: effectiveSessionId,
+            operation: 'chat_interaction',
+            requestPayloadHash: this.hashPayload({ query, merchantId }),
+            responseReference: `session:${effectiveSessionId}`,
+            outcome: 'success',
+            actor: 'user',
+            ipAddress: req.ip,
+            userAgent: req.get('User-Agent'),
+          });
+        } catch (auditError) {
+          console.warn('Audit logging failed (non-critical in development):', auditError);
+        }
+      }
 
       const apiResponse: ApiResponse<ChatResponse> = {
         success: true,
@@ -154,19 +175,41 @@ export class ChatController {
 
     } catch (error: any) {
       // Log failed chat interaction
-      await this.auditLogRepository.create({
-        merchantId: req.body.merchantId,
-        userId: req.body.userId || req.user?.userId || 'anonymous',
-        sessionId: req.body.sessionId,
-        operation: 'chat_interaction',
-        requestPayloadHash: this.hashPayload(req.body),
-        responseReference: 'error',
-        outcome: 'failure',
-        reason: error.message,
-        actor: 'user',
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-      });
+      if (process.env.NODE_ENV === 'production') {
+        // In production, fail fast if audit logging fails
+        await this.auditLogRepository.create({
+          merchantId: req.body.merchantId,
+          userId: req.body.userId || req.user?.userId || 'anonymous',
+          sessionId: req.body.sessionId,
+          operation: 'chat_interaction',
+          requestPayloadHash: this.hashPayload(req.body),
+          responseReference: 'error',
+          outcome: 'failure',
+          reason: error.message,
+          actor: 'user',
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent'),
+        });
+      } else {
+        // In development, gracefully handle audit logging failures
+        try {
+          await this.auditLogRepository.create({
+            merchantId: req.body.merchantId,
+            userId: req.body.userId || req.user?.userId || 'anonymous',
+            sessionId: req.body.sessionId,
+            operation: 'chat_interaction',
+            requestPayloadHash: this.hashPayload(req.body),
+            responseReference: 'error',
+            outcome: 'failure',
+            reason: error.message,
+            actor: 'user',
+            ipAddress: req.ip,
+            userAgent: req.get('User-Agent'),
+          });
+        } catch (auditError) {
+          console.warn('Audit logging failed (non-critical in development):', auditError);
+        }
+      }
 
       throw error;
     }
