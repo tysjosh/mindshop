@@ -1,0 +1,422 @@
+/api/merchants/{merchantId}/analytics/overview:
+  get:
+    summary: Get analytics overview for a merchant
+    description: |
+      Retrieves comprehensive analytics overview including total queries, active sessions,
+      average response time, success rate, and top queries for a specified merchant within
+      a given date range.
+    tags:
+      - Analytics
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        description: Unique identifier for the merchant
+        schema:
+          type: string
+          example: "acme_electronics_2024"
+      - name: startDate
+        in: query
+        required: false
+        description: Start date for analytics period (ISO 8601 format). Defaults to 30 days ago.
+        schema:
+          type: string
+          format: date
+          example: "2025-10-01"
+      - name: endDate
+        in: query
+        required: false
+        description: End date for analytics period (ISO 8601 format). Defaults to current date.
+        schema:
+          type: string
+          format: date
+          example: "2025-10-31"
+    responses:
+      '200':
+        description: Successfully retrieved analytics overview
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    totalQueries:
+                      type: integer
+                      description: Total number of queries in the period
+                      example: 1250
+                    activeSessions:
+                      type: integer
+                      description: Number of currently active sessions
+                      example: 42
+                    avgResponseTime:
+                      type: integer
+                      description: Average response time in milliseconds
+                      example: 245
+                    successRate:
+                      type: number
+                      description: Success rate as a percentage
+                      example: 98.5
+                    topQueries:
+                      type: array
+                      description: List of most frequent queries
+                      items:
+                        type: object
+                        properties:
+                          query:
+                            type: string
+                            example: "What are your return policies?"
+                          count:
+                            type: integer
+                            example: 87
+                          avgConfidence:
+                            type: number
+                            example: 0.92
+                    period:
+                      type: object
+                      properties:
+                        startDate:
+                          type: string
+                          format: date-time
+                          example: "2025-10-01T00:00:00.000Z"
+                        endDate:
+                          type: string
+                          format: date-time
+                          example: "2025-10-31T23:59:59.999Z"
+                timestamp:
+                  type: string
+                  format: date-time
+                  example: "2025-11-02T12:00:00.000Z"
+                requestId:
+                  type: string
+                  example: "req_abc123xyz"
+      '400':
+        description: Bad request - Invalid date format or date range
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: false
+                error:
+                  type: string
+                  example: "Invalid date format. Use ISO 8601 format (YYYY-MM-DD)"
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+      '401':
+        description: Unauthorized - Missing or invalid authentication token
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: false
+                error:
+                  type: string
+                  example: "Authentication required"
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+      '403':
+        description: Forbidden - User does not have access to this merchant's data
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: false
+                error:
+                  type: string
+                  example: "Access denied"
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: false
+                error:
+                  type: string
+                  example: "Failed to get analytics overview"
+                timestamp:
+                  type: string
+                  format: date-time
+                requestId:
+                  type: string
+
+/api/merchants/{merchantId}/analytics/queries:
+  get:
+    summary: Get query time series data
+    description: |
+      Retrieves time series data for queries, including count, average response time,
+      and success rate, grouped by hour or day.
+    tags:
+      - Analytics
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        description: Unique identifier for the merchant
+        schema:
+          type: string
+      - name: startDate
+        in: query
+        required: false
+        description: Start date for analytics period
+        schema:
+          type: string
+          format: date
+      - name: endDate
+        in: query
+        required: false
+        description: End date for analytics period
+        schema:
+          type: string
+          format: date
+      - name: groupBy
+        in: query
+        required: false
+        description: Time grouping interval
+        schema:
+          type: string
+          enum: [hour, day]
+          default: day
+    responses:
+      '200':
+        description: Successfully retrieved query time series
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                data:
+                  type: object
+                  properties:
+                    merchantId:
+                      type: string
+                    startDate:
+                      type: string
+                      format: date-time
+                    endDate:
+                      type: string
+                      format: date-time
+                    groupBy:
+                      type: string
+                    queries:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          timestamp:
+                            type: string
+                            format: date-time
+                          count:
+                            type: integer
+                          avgResponseTime:
+                            type: integer
+                          successRate:
+                            type: number
+
+/api/merchants/{merchantId}/analytics/top-queries:
+  get:
+    summary: Get top queries
+    description: Retrieves the most frequently asked queries for a merchant
+    tags:
+      - Analytics
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: startDate
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: endDate
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: limit
+        in: query
+        required: false
+        description: Maximum number of queries to return (1-100)
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+    responses:
+      '200':
+        description: Successfully retrieved top queries
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                data:
+                  type: object
+                  properties:
+                    merchantId:
+                      type: string
+                    topQueries:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          query:
+                            type: string
+                          count:
+                            type: integer
+                          avgConfidence:
+                            type: number
+
+/api/merchants/{merchantId}/analytics/performance:
+  get:
+    summary: Get performance metrics
+    description: Retrieves performance metrics including response time percentiles, cache hit rate, error rate, and uptime
+    tags:
+      - Analytics
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: startDate
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: endDate
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+    responses:
+      '200':
+        description: Successfully retrieved performance metrics
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                data:
+                  type: object
+                  properties:
+                    merchantId:
+                      type: string
+                    p50ResponseTime:
+                      type: integer
+                      description: 50th percentile response time in ms
+                    p95ResponseTime:
+                      type: integer
+                      description: 95th percentile response time in ms
+                    p99ResponseTime:
+                      type: integer
+                      description: 99th percentile response time in ms
+                    cacheHitRate:
+                      type: number
+                      description: Cache hit rate as percentage
+                    errorRate:
+                      type: number
+                      description: Error rate as percentage
+                    uptime:
+                      type: number
+                      description: Uptime as percentage
+
+/api/merchants/{merchantId}/analytics/intents:
+  get:
+    summary: Get intent distribution
+    description: Retrieves the distribution of query intents for a merchant
+    tags:
+      - Analytics
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: merchantId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: startDate
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: endDate
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+    responses:
+      '200':
+        description: Successfully retrieved intent distribution
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                data:
+                  type: object
+                  properties:
+                    merchantId:
+                      type: string
+                    intents:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          intent:
+                            type: string
+                          count:
+                            type: integer
+                          percentage:
+                            type: number

@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Assistant - Advanced Callbacks Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+    
+    .content {
+      padding: 40px;
+    }
+    
+    .section {
+      margin-bottom: 40px;
+    }
+    
+    .section h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #667eea;
+    }
+    
+    .code-block {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      overflow-x: auto;
+    }
+    
+    .code-block pre {
+      margin: 0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    .event-log {
+      background: #f5f5f5;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .event-log h3 {
+      margin-bottom: 15px;
+      color: #333;
+    }
+    
+    .event-item {
+      background: white;
+      border-left: 4px solid #667eea;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .event-item.success {
+      border-left-color: #4caf50;
+    }
+    
+    .event-item.error {
+      border-left-color: #f44336;
+    }
+    
+    .event-item .timestamp {
+      color: #999;
+      font-size: 11px;
+    }
+    
+    .event-item .event-type {
+      font-weight: bold;
+      color: #667eea;
+    }
+    
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 20px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    
+    .demo-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin: 20px 0;
+    }
+    
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn.secondary {
+      background: #6c757d;
+    }
+    
+    .btn.danger {
+      background: #dc3545;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔧 Advanced Callbacks</h1>
+      <p>Complete guide to all widget callbacks and events</p>
+    </div>
+    
+    <div class="content">
+      <div class="section">
+        <h2>Live Event Log</h2>
+        <p>All callback events will be logged here in real-time:</p>
+        
+        <div class="event-log" id="eventLog">
+          <h3>Event Log</h3>
+          <div class="event-item">
+            <span class="timestamp">[00:00:00]</span>
+            <span class="event-type">READY</span> - Widget initialized
+          </div>
+        </div>
+        
+        <div class="demo-controls">
+          <button class="btn" onclick="ra('open')">Open Widget</button>
+          <button class="btn secondary" onclick="clearLog()">Clear Log</button>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>1. Add to Cart Callback</h2>
+        <p>Called when user clicks "Add to Cart" on a product recommendation.</p>
+        
+        <div class="code-block">
+          <pre>addToCartCallback: (product) => {
+  console.log('Add to cart:', product);
+  
+  // Product object structure:
+  // {
+  //   id: 'prod_123',
+  //   title: 'Laptop Pro',
+  //   description: 'High-performance laptop',
+  //   price: 1299.99,
+  //   currency: 'USD',
+  //   imageUrl: 'https://...',
+  //   url: 'https://...',
+  //   inStock: true,
+  //   metadata: { sku: 'LAP-001', category: 'Electronics' }
+  // }
+  
+  // Example: Add to cart via API
+  fetch('/api/cart/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      productId: product.id,
+      quantity: 1,
+      price: product.price
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    // Show success notification
+    showNotification(`Added ${product.title} to cart!`);
+    
+    // Update cart count in UI
+    updateCartCount(data.cartCount);
+  })
+  .catch(error => {
+    console.error('Failed to add to cart:', error);
+    showNotification('Failed to add to cart', 'error');
+  });
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>2. Checkout Callback</h2>
+        <p>Called when user wants to proceed to checkout.</p>
+        
+        <div class="code-block">
+          <pre>checkoutCallback: (items) => {
+  console.log('Checkout:', items);
+  
+  // Items array structure:
+  // [
+  //   {
+  //     id: 'prod_123',
+  //     title: 'Laptop Pro',
+  //     price: 1299.99,
+  //     quantity: 1
+  //   },
+  //   ...
+  // ]
+  
+  // Example: Navigate to checkout
+  window.location.href = '/checkout';
+  
+  // Or with React Router:
+  // navigate('/checkout');
+  
+  // Or with Vue Router:
+  // router.push('/checkout');
+  
+  // Or with Angular Router:
+  // this.router.navigate(['/checkout']);
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>3. Analytics Callback</h2>
+        <p>Called for various analytics events throughout the conversation.</p>
+        
+        <div class="code-block">
+          <pre>analyticsCallback: (event) => {
+  console.log('Analytics event:', event);
+  
+  // Event object structure:
+  // {
+  //   event: 'chat_query' | 'product_view' | 'product_click' | 'add_to_cart',
+  //   timestamp: '2025-11-02T10:30:00Z',
+  //   sessionId: 'sess_abc123',
+  //   query: 'Show me laptops',
+  //   responseTime: 450,
+  //   resultsCount: 3,
+  //   metadata: { ... }
+  // }
+  
+  // Example: Track with Google Analytics
+  if (typeof gtag !== 'undefined') {
+    gtag('event', event.event, {
+      event_category: 'RAG Assistant',
+      event_label: event.query,
+      value: event.responseTime,
+      session_id: event.sessionId
+    });
+  }
+  
+  // Example: Track with Segment
+  if (typeof analytics !== 'undefined') {
+    analytics.track(event.event, {
+      query: event.query,
+      responseTime: event.responseTime,
+      resultsCount: event.resultsCount,
+      sessionId: event.sessionId
+    });
+  }
+  
+  // Example: Track with Mixpanel
+  if (typeof mixpanel !== 'undefined') {
+    mixpanel.track(event.event, {
+      query: event.query,
+      responseTime: event.responseTime,
+      resultsCount: event.resultsCount
+    });
+  }
+  
+  // Example: Send to your own analytics API
+  fetch('/api/analytics/track', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(event)
+  });
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>4. Error Callback</h2>
+        <p>Called when an error occurs in the widget.</p>
+        
+        <div class="code-block">
+          <pre>errorCallback: (error) => {
+  console.error('Widget error:', error);
+  
+  // Error object structure:
+  // {
+  //   type: 'api_error' | 'network_error' | 'validation_error',
+  //   message: 'Failed to fetch response',
+  //   code: 'ERR_NETWORK',
+  //   timestamp: '2025-11-02T10:30:00Z',
+  //   details: { ... }
+  // }
+  
+  // Example: Show user-friendly error message
+  if (error.type === 'network_error') {
+    showNotification('Connection lost. Please check your internet.', 'error');
+  } else if (error.type === 'api_error') {
+    showNotification('Service temporarily unavailable. Please try again.', 'error');
+  }
+  
+  // Example: Log to error tracking service
+  if (typeof Sentry !== 'undefined') {
+    Sentry.captureException(new Error(error.message), {
+      tags: {
+        component: 'rag-assistant',
+        errorType: error.type
+      },
+      extra: error.details
+    });
+  }
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>5. Message Sent Callback</h2>
+        <p>Called when user sends a message.</p>
+        
+        <div class="code-block">
+          <pre>onMessageSent: (message) => {
+  console.log('Message sent:', message);
+  
+  // Message object structure:
+  // {
+  //   text: 'Show me laptops under $1000',
+  //   timestamp: '2025-11-02T10:30:00Z',
+  //   sessionId: 'sess_abc123'
+  // }
+  
+  // Example: Track user engagement
+  trackEngagement('message_sent', {
+    messageLength: message.text.length,
+    sessionId: message.sessionId
+  });
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>6. Message Received Callback</h2>
+        <p>Called when assistant responds with a message.</p>
+        
+        <div class="code-block">
+          <pre>onMessageReceived: (message) => {
+  console.log('Message received:', message);
+  
+  // Message object structure:
+  // {
+  //   text: 'Here are some laptops under $1000...',
+  //   timestamp: '2025-11-02T10:30:01Z',
+  //   sessionId: 'sess_abc123',
+  //   products: [...],
+  //   responseTime: 450
+  // }
+  
+  // Example: Track response quality
+  trackEngagement('message_received', {
+    responseTime: message.responseTime,
+    hasProducts: message.products.length > 0,
+    sessionId: message.sessionId
+  });
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>7. Widget Opened Callback</h2>
+        <p>Called when widget is opened.</p>
+        
+        <div class="code-block">
+          <pre>onOpen: () => {
+  console.log('Widget opened');
+  
+  // Example: Track widget opens
+  trackEngagement('widget_opened');
+  
+  // Example: Pause background video
+  const video = document.querySelector('video');
+  if (video) {
+    video.pause();
+  }
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>8. Widget Closed Callback</h2>
+        <p>Called when widget is closed.</p>
+        
+        <div class="code-block">
+          <pre>onClose: () => {
+  console.log('Widget closed');
+  
+  // Example: Track widget closes
+  trackEngagement('widget_closed');
+  
+  // Example: Resume background video
+  const video = document.querySelector('video');
+  if (video) {
+    video.play();
+  }
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Complete Example</h2>
+        <p>Here's a complete example with all callbacks:</p>
+        
+        <div class="code-block">
+          <pre>const assistant = new RAGAssistant({
+  merchantId: 'your_merchant_id',
+  apiKey: 'pk_live_...',
+  
+  integration: {
+    // Cart integration
+    addToCartCallback: (product) => {
+      addToCart(product);
+      showNotification(`Added ${product.title} to cart!`);
+      trackEvent('add_to_cart', { productId: product.id });
+    },
+    
+    // Checkout integration
+    checkoutCallback: (items) => {
+      window.location.href = '/checkout';
+      trackEvent('checkout_initiated', { itemCount: items.length });
+    },
+    
+    // Analytics integration
+    analyticsCallback: (event) => {
+      // Google Analytics
+      gtag('event', event.event, {
+        event_category: 'RAG Assistant',
+        event_label: event.query,
+        value: event.responseTime
+      });
+      
+      // Custom analytics
+      trackEvent(event.event, event);
+    },
+    
+    // Error handling
+    errorCallback: (error) => {
+      console.error('Widget error:', error);
+      showNotification('Something went wrong. Please try again.', 'error');
+      
+      // Log to Sentry
+      Sentry.captureException(new Error(error.message));
+    },
+    
+    // Message events
+    onMessageSent: (message) => {
+      trackEvent('message_sent', { messageLength: message.text.length });
+    },
+    
+    onMessageReceived: (message) => {
+      trackEvent('message_received', { 
+        responseTime: message.responseTime,
+        hasProducts: message.products.length > 0
+      });
+    },
+    
+    // Widget state events
+    onOpen: () => {
+      trackEvent('widget_opened');
+      pauseBackgroundMedia();
+    },
+    
+    onClose: () => {
+      trackEvent('widget_closed');
+      resumeBackgroundMedia();
+    }
+  }
+});</pre>
+        </div>
+      </div>
+      
+      <div class="info-box">
+        <strong>💡 Best Practices:</strong>
+        <ul style="margin-top: 10px; padding-left: 20px;">
+          <li>Always handle errors gracefully in callbacks</li>
+          <li>Use try-catch blocks to prevent callback errors from breaking the widget</li>
+          <li>Track all important events for analytics and optimization</li>
+          <li>Provide user feedback for actions (notifications, loading states)</li>
+          <li>Test callbacks thoroughly in different scenarios</li>
+          <li>Keep callbacks lightweight to avoid performance issues</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Event logging
+    function logEvent(type, message, data = {}) {
+      const eventLog = document.getElementById('eventLog');
+      const timestamp = new Date().toLocaleTimeString();
+      const eventItem = document.createElement('div');
+      eventItem.className = `event-item ${type === 'error' ? 'error' : type === 'success' ? 'success' : ''}`;
+      eventItem.innerHTML = `
+        <span class="timestamp">[${timestamp}]</span>
+        <span class="event-type">${type.toUpperCase()}</span> - ${message}
+        ${Object.keys(data).length > 0 ? `<br><pre style="margin-top: 5px;">${JSON.stringify(data, null, 2)}</pre>` : ''}
+      `;
+      eventLog.appendChild(eventItem);
+      eventLog.scrollTop = eventLog.scrollHeight;
+    }
+    
+    function clearLog() {
+      const eventLog = document.getElementById('eventLog');
+      eventLog.innerHTML = '<h3>Event Log</h3>';
+      logEvent('info', 'Log cleared');
+    }
+    
+    // Notification helper
+    function showNotification(message, type = 'success') {
+      alert(message);
+    }
+  </script>
+  
+  <!-- RAG Assistant Widget -->
+  <script>
+    (function(w,d,s,o,f,js,fjs){
+      w['RAGAssistant']=o;w[o]=w[o]||function(){(w[o].q=w[o].q||[]).push(arguments)};
+      js=d.createElement(s),fjs=d.getElementsByTagName(s)[0];
+      js.id=o;js.src=f;js.async=1;fjs.parentNode.insertBefore(js,fjs);
+    }(window,document,'script','ra','widget.js'));
+    
+    ra('init', {
+      // ⚠️ REPLACE WITH YOUR CREDENTIALS - Get them from your dashboard
+      merchantId: 'demo_store_2024',
+      apiKey: 'pk_test_279f4099f6e3e961f8fbf465680baece06a4f361e134563f046bad8820d41cd8',
+      
+      // For local development
+      apiBaseUrl: 'http://localhost:3000',
+      
+      theme: {
+        primaryColor: '#667eea',
+        position: 'bottom-right'
+      },
+      
+      behavior: {
+        autoOpen: false,
+        greeting: 'Hi! 👋 Try interacting with me to see callback events.',
+        maxRecommendations: 3
+      },
+      
+      integration: {
+        addToCartCallback: (product) => {
+          logEvent('success', 'Add to Cart', { 
+            productId: product.id, 
+            title: product.title,
+            price: product.price
+          });
+          showNotification(`Added "${product.title}" to cart!`);
+        },
+        
+        checkoutCallback: (items) => {
+          logEvent('info', 'Checkout', { itemCount: items.length });
+          showNotification(`Proceeding to checkout with ${items.length} item(s)`);
+        },
+        
+        analyticsCallback: (event) => {
+          logEvent('info', 'Analytics Event', event);
+        },
+        
+        errorCallback: (error) => {
+          logEvent('error', 'Error Occurred', error);
+        },
+        
+        onMessageSent: (message) => {
+          logEvent('info', 'Message Sent', { text: message.text });
+        },
+        
+        onMessageReceived: (message) => {
+          logEvent('success', 'Message Received', { 
+            responseTime: message.responseTime,
+            productsCount: message.products?.length || 0
+          });
+        },
+        
+        onOpen: () => {
+          logEvent('info', 'Widget Opened');
+        },
+        
+        onClose: () => {
+          logEvent('info', 'Widget Closed');
+        }
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+/**
+ * Example usage of apiKeyAuth middleware
+ * This file demonstrates how to use the API key authentication middleware in routes
+ */
+
+import { Router } from 'express';
+import { apiKeyAuth, requirePermissions } from './apiKeyAuth';
+
+const router = Router();
+
+// Example 1: Basic API key authentication
+// Any valid API key can access this endpoint
+router.get('/api/public-data', apiKeyAuth(), (req, res) => {
+  res.json({
+    success: true,
+    message: 'This endpoint requires a valid API key',
+    merchantId: req.apiKey?.merchantId,
+  });
+});
+
+// Example 2: API key with specific permissions
+// Only API keys with 'chat:read' permission can access this endpoint
+router.get('/api/chat/history', 
+  apiKeyAuth(), 
+  requirePermissions(['chat:read']),
+  (req, res) => {
+    res.json({
+      success: true,
+      message: 'Chat history endpoint',
+      merchantId: req.apiKey?.merchantId,
+    });
+  }
+);
+
+// Example 3: API key with multiple permissions
+// API key must have both 'documents:write' and 'documents:read' permissions
+router.post('/api/documents', 
+  apiKeyAuth(), 
+  requirePermissions(['documents:write', 'documents:read']),
+  (req, res) => {
+    res.json({
+      success: true,
+      message: 'Document created',
+      merchantId: req.apiKey?.merchantId,
+    });
+  }
+);
+
+// Example 4: Combining with other middleware
+router.get('/api/analytics', 
+  apiKeyAuth(), 
+  requirePermissions(['analytics:read']),
+  // Add other middleware here (rate limiting, validation, etc.)
+  (req, res) => {
+    res.json({
+      success: true,
+      message: 'Analytics data',
+      merchantId: req.apiKey?.merchantId,
+    });
+  }
+);
+
+export default router;
+
+/**
+ * Usage in your main app.ts:
+ * 
+ * import apiKeyRoutes from './routes/apiKeyRoutes';
+ * app.use(apiKeyRoutes);
+ * 
+ * 
+ * Client usage:
+ * 
+ * curl -H "Authorization: Bearer pk_live_abc123..." \
+ *      https://api.example.com/api/public-data
+ * 
+ * 
+ * Response format:
+ * 
+ * Success:
+ * {
+ *   "success": true,
+ *   "data": { ... }
+ * }
+ * 
+ * Error (401 - Invalid API key):
+ * {
+ *   "success": false,
+ *   "error": "Invalid or expired API key",
+ *   "message": "The provided API key is invalid, expired, or has been revoked",
+ *   "timestamp": "2025-11-01T12:00:00.000Z",
+ *   "requestId": "req_123"
+ * }
+ * 
+ * Error (403 - Insufficient permissions):
+ * {
+ *   "success": false,
+ *   "error": "Insufficient permissions",
+ *   "message": "This API key does not have the required permissions: chat:read",
+ *   "timestamp": "2025-11-01T12:00:00.000Z",
+ *   "requestId": "req_123"
+ * }
+ */

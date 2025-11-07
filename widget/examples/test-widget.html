@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Widget Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 8px;
+    }
+    h1 { color: #333; }
+    .status {
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      background: #e3f2fd;
+      border: 1px solid #2196f3;
+    }
+    .error {
+      background: #ffebee;
+      border-color: #f44336;
+      color: #c62828;
+    }
+    .success {
+      background: #e8f5e9;
+      border-color: #4caf50;
+      color: #2e7d32;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Widget Test Page</h1>
+    <div id="status" class="status">Loading widget...</div>
+    <p>If the widget loads successfully, you should see a blue chat button in the bottom-right corner.</p>
+  </div>
+
+  <!-- Try loading from dist -->
+  <script src="../dist/widget.js" onerror="handleError('dist/widget.js')"></script>
+  
+  <script>
+    function handleError(path) {
+      document.getElementById('status').className = 'status error';
+      document.getElementById('status').innerHTML = 
+        '❌ Failed to load widget from: ' + path + '<br><br>' +
+        'Trying alternative path...';
+      
+      // Try loading from root
+      const script = document.createElement('script');
+      script.src = '/widget.js';
+      script.onerror = function() {
+        document.getElementById('status').innerHTML = 
+          '❌ Failed to load widget from both paths:<br>' +
+          '• ../dist/widget.js<br>' +
+          '• /widget.js<br><br>' +
+          'Please check the browser console (F12) for more details.';
+      };
+      script.onload = function() {
+        initWidget();
+      };
+      document.body.appendChild(script);
+    }
+    
+    function initWidget() {
+      try {
+        if (typeof RAGAssistant === 'undefined') {
+          throw new Error('RAGAssistant is not defined');
+        }
+        
+        const assistant = new RAGAssistant({
+          merchantId: 'test_merchant',
+          apiKey: 'test_key',
+          apiBaseUrl: 'http://localhost:3000',
+          theme: {
+            primaryColor: '#007bff',
+            position: 'bottom-right'
+          },
+          behavior: {
+            autoOpen: false,
+            greeting: 'Hello! How can I help you?',
+            placeholder: 'Type your message...'
+          }
+        });
+        
+        document.getElementById('status').className = 'status success';
+        document.getElementById('status').innerHTML = 
+          '✅ Widget loaded successfully!<br><br>' +
+          'Look for the blue chat button in the bottom-right corner.';
+        
+        console.log('Widget initialized:', assistant);
+      } catch (error) {
+        document.getElementById('status').className = 'status error';
+        document.getElementById('status').innerHTML = 
+          '❌ Error initializing widget:<br>' + error.message;
+        console.error('Widget initialization error:', error);
+      }
+    }
+    
+    // If script loaded successfully
+    if (typeof RAGAssistant !== 'undefined') {
+      initWidget();
+    }
+  </script>
+</body>
+</html>

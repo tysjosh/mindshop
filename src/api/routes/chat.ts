@@ -1,7 +1,7 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import Joi from "joi";
 import { chatController } from "../controllers/ChatController";
-import { authenticateJWT } from "../middleware/auth";
+import { apiKeyAuth, requirePermissions } from "../middleware/apiKeyAuth";
 import { validateRequest } from "../middleware/validation";
 import { rateLimitMiddleware } from "../middleware/rateLimit";
 import { asyncHandler } from "../middleware/errorHandler";
@@ -9,8 +9,8 @@ import { costTrackingMiddleware } from "../middleware/costTracking";
 
 const router = Router();
 
-// Apply authentication middleware to all routes
-router.use(authenticateJWT());
+// Apply API key authentication middleware to all routes
+router.use(apiKeyAuth());
 
 // Apply rate limiting
 const chatRateLimit = rateLimitMiddleware({
@@ -74,11 +74,12 @@ const deleteSessionSchema = {
 /**
  * @route POST /api/chat
  * @desc Main chat endpoint with RAGService integration
- * @access Private (requires authentication)
+ * @access Private (requires authentication + chat:write permission)
  */
 router.post(
-  "/chat",
+  "/",
   chatRateLimit,
+  requirePermissions(['chat:write']),
   costTrackingMiddleware("chat"),
   validateRequest(chatRequestSchema),
   asyncHandler(chatController.chat.bind(chatController))
@@ -87,11 +88,12 @@ router.post(
 /**
  * @route GET /api/chat/sessions/:sessionId/history
  * @desc Get chat history for a session
- * @access Private (requires authentication)
+ * @access Private (requires authentication + chat:read permission)
  */
 router.get(
   "/sessions/:sessionId/history",
   sessionRateLimit,
+  requirePermissions(['chat:read']),
   validateRequest({
     ...sessionIdParamSchema,
     query: Joi.object({
@@ -104,11 +106,12 @@ router.get(
 /**
  * @route DELETE /api/chat/sessions/:sessionId
  * @desc Clear chat session
- * @access Private (requires authentication)
+ * @access Private (requires authentication + sessions:write permission)
  */
 router.delete(
   "/sessions/:sessionId",
   sessionRateLimit,
+  requirePermissions(['sessions:write']),
   validateRequest({
     ...sessionIdParamSchema,
     ...deleteSessionSchema,
@@ -119,11 +122,12 @@ router.delete(
 /**
  * @route GET /api/chat/analytics
  * @desc Get chat analytics for a merchant
- * @access Private (requires authentication)
+ * @access Private (requires authentication + analytics:read permission)
  */
 router.get(
   "/analytics",
   sessionRateLimit,
+  requirePermissions(['analytics:read']),
   validateRequest({
     query: Joi.object({
       merchantId: Joi.string().required().min(3).max(100),
@@ -143,6 +147,51 @@ router.get(
 router.get(
   "/health",
   asyncHandler(chatController.healthCheck.bind(chatController))
+);
+
+/**
+ * @route POST /api/chat/sessions
+ * @desc Create a new chat session
+ * @access Private (requires authentication + sessions:write permission)
+ */
+router.post(
+  "/sessions",
+  sessionRateLimit,
+  requirePermissions(['sessions:write']),
+  validateRequest({
+    body: Joi.object({
+      merchantId: Joi.string().required().min(3).max(100),
+      userId: Joi.string().optional().min(1).max(100),
+    }),
+  }),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { merchantId, userId } = req.body;
+    const { UserSessionRepository } = require('../../repositories/UserSessionRepository');
+    const sessionRepository = new UserSessionRepository();
+    const crypto = require('crypto');
+    
+    const sessionId = crypto.randomUUID();
+    // Generate anonymous user ID if not provided
+    const finalUserId = userId || `anonymous_${crypto.randomUUID()}`;
+    
+    // Create session in database
+    await sessionRepository.create({
+      sessionId,
+      merchantId,
+      userId: finalUserId,
+      metadata: {},
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        sessionId,
+        createdAt: new Date().toISOString(),
+      },
+      timestamp: new Date().toISOString(),
+      requestId: req.headers['x-request-id'],
+    });
+  })
 );
 
 export default router;

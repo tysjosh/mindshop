@@ -2,6 +2,7 @@
 import "source-map-support/register";
 import * as cdk from "aws-cdk-lib";
 import { MindsDBRAGStack } from "../lib/mindsdb-rag-stack";
+import { WidgetCdnStack } from "../lib/widget-cdn-stack";
 
 const app = new cdk.App();
 
@@ -28,6 +29,25 @@ new MindsDBRAGStack(app, stackName, {
   tags: {
     Environment: environment,
     Project: "MindsDB-RAG-Assistant",
+    ManagedBy: "CDK",
+  },
+});
+
+// Widget CDN Stack
+const widgetEnvironment = app.node.tryGetContext("widgetEnvironment") || "development";
+const cdnDomain = app.node.tryGetContext("cdnDomain");
+const certificateArn = app.node.tryGetContext("certificateArn");
+
+new WidgetCdnStack(app, `rag-widget-cdn-${widgetEnvironment}`, {
+  env,
+  stackName: `rag-widget-cdn-${widgetEnvironment}`,
+  environment: widgetEnvironment as 'development' | 'staging' | 'production',
+  domainName: cdnDomain,
+  certificateArn: certificateArn,
+  description: `RAG Assistant Widget CDN for ${widgetEnvironment} environment`,
+  tags: {
+    Environment: widgetEnvironment,
+    Project: "RAG-Assistant-Widget",
     ManagedBy: "CDK",
   },
 });

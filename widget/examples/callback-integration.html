@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Assistant - Callback Integration Example</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+
+    .demo-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .demo-section h2 {
+      margin-top: 0;
+      color: #007bff;
+    }
+
+    .cart-display {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 15px;
+    }
+
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      background: white;
+      margin-bottom: 8px;
+      border-radius: 4px;
+      border-left: 3px solid #007bff;
+    }
+
+    .cart-item-info {
+      flex: 1;
+    }
+
+    .cart-item-title {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .cart-item-price {
+      color: #007bff;
+      font-weight: 700;
+    }
+
+    .cart-item-quantity {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .cart-empty {
+      text-align: center;
+      color: #999;
+      padding: 20px;
+    }
+
+    .cart-total {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 2px solid #dee2e6;
+      font-size: 18px;
+      font-weight: 700;
+      text-align: right;
+      color: #333;
+    }
+
+    .event-log {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 15px;
+    }
+
+    .event-log-entry {
+      margin-bottom: 8px;
+      padding: 4px 0;
+      border-bottom: 1px solid #333;
+    }
+
+    .event-timestamp {
+      color: #858585;
+      margin-right: 10px;
+    }
+
+    .event-type {
+      color: #4ec9b0;
+      font-weight: 600;
+      margin-right: 10px;
+    }
+
+    .event-data {
+      color: #ce9178;
+    }
+
+    .clear-button {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+
+    .clear-button:hover {
+      background: #c82333;
+    }
+
+    .code-block {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #007bff;
+      overflow-x: auto;
+      margin-top: 15px;
+    }
+
+    .code-block code {
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #333;
+    }
+
+    .feature-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .feature-list li {
+      padding: 8px 0;
+      padding-left: 25px;
+      position: relative;
+    }
+
+    .feature-list li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #28a745;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛒 RAG Assistant - Callback Integration Demo</h1>
+    <p class="subtitle">This example demonstrates how to integrate the RAG Assistant widget with your e-commerce platform using callbacks.</p>
+
+    <div class="demo-section">
+      <h2>Features Demonstrated</h2>
+      <ul class="feature-list">
+        <li><strong>addToCartCallback</strong> - Called when user clicks "Add to Cart" on a product recommendation</li>
+        <li><strong>checkoutCallback</strong> - Called when user initiates checkout with selected items</li>
+        <li><strong>analyticsCallback</strong> - Called for tracking user interactions and events</li>
+        <li><strong>Cart State Management</strong> - Demonstrates maintaining cart state in your application</li>
+        <li><strong>Event Logging</strong> - Real-time logging of all callback events</li>
+      </ul>
+    </div>
+
+    <div class="demo-section">
+      <h2>Shopping Cart</h2>
+      <div id="cart-display" class="cart-display">
+        <div class="cart-empty">Your cart is empty. Try asking the assistant for product recommendations!</div>
+      </div>
+    </div>
+
+    <div class="demo-section">
+      <h2>Event Log</h2>
+      <div id="event-log" class="event-log">
+        <div class="event-log-entry">
+          <span class="event-timestamp">[Ready]</span>
+          <span class="event-type">SYSTEM</span>
+          <span class="event-data">Waiting for events...</span>
+        </div>
+      </div>
+      <button class="clear-button" onclick="clearEventLog()">Clear Log</button>
+    </div>
+
+    <div class="demo-section">
+      <h2>Implementation Code</h2>
+      <p>Here's how the callbacks are configured in this example:</p>
+      <div class="code-block">
+        <code><pre>const assistant = new RAGAssistant({
+  // ⚠️ REPLACE WITH YOUR CREDENTIALS
+  merchantId: 'demo_store_2024',
+  apiKey: 'pk_test_279f4099f6e3e961f8fbf465680baece06a4f361e134563f046bad8820d41cd8',
+  apiBaseUrl: 'http://localhost:3000',
+  
+  integration: {
+    // Called when user adds a product to cart
+    addToCartCallback: (product) => {
+      console.log('Add to cart:', product);
+      addToCart(product);
+      logEvent('ADD_TO_CART', product);
+    },
+    
+    // Called when user initiates checkout
+    checkoutCallback: (items) => {
+      console.log('Checkout:', items);
+      processCheckout(items);
+      logEvent('CHECKOUT', items);
+    },
+    
+    // Called for analytics tracking
+    analyticsCallback: (event) => {
+      console.log('Analytics:', event);
+      logEvent('ANALYTICS', event);
+    }
+  }
+});</pre></code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load the RAG Assistant Widget -->
+  <script src="widget.js"></script>
+
+  <script>
+    // Cart state
+    let cart = [];
+
+    // Initialize the RAG Assistant with callbacks
+    const assistant = new RAGAssistant({
+      // ⚠️ REPLACE WITH YOUR CREDENTIALS - Get them from your dashboard
+      merchantId: 'demo_store_2024',
+      apiKey: 'pk_test_279f4099f6e3e961f8fbf465680baece06a4f361e134563f046bad8820d41cd8',
+      apiBaseUrl: 'http://localhost:3000',
+      
+      theme: {
+        primaryColor: '#007bff',
+        position: 'bottom-right'
+      },
+      
+      behavior: {
+        autoOpen: false,
+        greeting: 'Hi! I can help you find products. Try asking "Show me laptops" or "I need a phone under $500"',
+        maxRecommendations: 3
+      },
+      
+      integration: {
+        // Add to cart callback
+        addToCartCallback: (product) => {
+          console.log('Add to cart callback triggered:', product);
+          addToCart(product);
+          logEvent('ADD_TO_CART', {
+            productId: product.id,
+            title: product.title,
+            price: product.price
+          });
+        },
+        
+        // Checkout callback
+        checkoutCallback: (items) => {
+          console.log('Checkout callback triggered:', items);
+          processCheckout(items);
+          logEvent('CHECKOUT', {
+            itemCount: items.length,
+            totalValue: items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
+          });
+        },
+        
+        // Analytics callback
+        analyticsCallback: (event) => {
+          console.log('Analytics callback triggered:', event);
+          logEvent('ANALYTICS', event);
+        }
+      }
+    });
+
+    // Add product to cart
+    function addToCart(product) {
+      const existingItem = cart.find(item => item.product.id === product.id);
+      
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        cart.push({
+          product: product,
+          quantity: 1
+        });
+      }
+      
+      updateCartDisplay();
+      showNotification(`Added ${product.title} to cart!`);
+    }
+
+    // Process checkout
+    function processCheckout(items) {
+      if (items.length === 0) {
+        showNotification('Cart is empty!');
+        return;
+      }
+
+      const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+      
+      showNotification(`Processing checkout for ${items.length} items (Total: $${total.toFixed(2)})`);
+      
+      // Simulate checkout process
+      setTimeout(() => {
+        showNotification('Checkout completed! (This is a demo)');
+        cart = [];
+        updateCartDisplay();
+      }, 1500);
+    }
+
+    // Update cart display
+    function updateCartDisplay() {
+      const cartDisplay = document.getElementById('cart-display');
+      
+      if (cart.length === 0) {
+        cartDisplay.innerHTML = '<div class="cart-empty">Your cart is empty. Try asking the assistant for product recommendations!</div>';
+        return;
+      }
+
+      const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+      
+      let html = '';
+      cart.forEach(item => {
+        html += `
+          <div class="cart-item">
+            <div class="cart-item-info">
+              <div class="cart-item-title">${item.product.title}</div>
+              <div class="cart-item-quantity">Quantity: ${item.quantity}</div>
+            </div>
+            <div class="cart-item-price">$${(item.product.price * item.quantity).toFixed(2)}</div>
+          </div>
+        `;
+      });
+      
+      html += `<div class="cart-total">Total: $${total.toFixed(2)}</div>`;
+      
+      cartDisplay.innerHTML = html;
+    }
+
+    // Log event to the event log
+    function logEvent(type, data) {
+      const eventLog = document.getElementById('event-log');
+      const timestamp = new Date().toLocaleTimeString();
+      
+      const entry = document.createElement('div');
+      entry.className = 'event-log-entry';
+      entry.innerHTML = `
+        <span class="event-timestamp">[${timestamp}]</span>
+        <span class="event-type">${type}</span>
+        <span class="event-data">${JSON.stringify(data, null, 2)}</span>
+      `;
+      
+      eventLog.appendChild(entry);
+      eventLog.scrollTop = eventLog.scrollHeight;
+    }
+
+    // Clear event log
+    function clearEventLog() {
+      const eventLog = document.getElementById('event-log');
+      eventLog.innerHTML = `
+        <div class="event-log-entry">
+          <span class="event-timestamp">[${new Date().toLocaleTimeString()}]</span>
+          <span class="event-type">SYSTEM</span>
+          <span class="event-data">Log cleared</span>
+        </div>
+      `;
+    }
+
+    // Show notification
+    function showNotification(message) {
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 10001;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        animation: slideInFromRight 0.3s ease-out;
+      `;
+      notification.textContent = message;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.style.animation = 'slideOutToRight 0.3s ease-out';
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 300);
+      }, 3000);
+    }
+
+    // Add CSS animations
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideInFromRight {
+        from {
+          opacity: 0;
+          transform: translateX(100%);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      
+      @keyframes slideOutToRight {
+        from {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(100%);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    console.log('RAG Assistant initialized with callbacks');
+    logEvent('INIT', { merchantId: 'demo_merchant' });
+  </script>
+</body>
+</html>

@@ -1,9 +1,10 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { SemanticRetrievalService } from '../../services/SemanticRetrievalService';
-import { SemanticRetrievalParams } from '../../types';
+import { SemanticRetrievalParams, ApiResponse } from '../../types';
 import { validateRequest } from '../middleware/validation';
 import { AuditLogRepository } from '../../repositories/AuditLogRepository';
+import { sendSuccess, sendError, getRequestId } from '../utils/responseFormatter';
 
 export class SemanticRetrievalController {
   private semanticRetrievalService = new SemanticRetrievalService();
@@ -14,16 +15,12 @@ export class SemanticRetrievalController {
    * POST /api/semantic-retrieval/deploy
    */
   async deployPredictor(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchantId } = req.body;
       
       if (!merchantId) {
-        res.status(400).json({
-          success: false,
-          error: 'merchantId is required',
-          timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || 'unknown'
-        });
+        sendError(res, 'merchantId is required', 400, requestId);
         return;
       }
 
@@ -41,16 +38,11 @@ export class SemanticRetrievalController {
         userAgent: req.get('User-Agent')
       });
 
-      res.status(201).json({
-        success: true,
-        data: {
-          predictorName: `semantic_retriever_${merchantId}`,
-          merchantId,
-          status: 'deployed'
-        },
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] || 'unknown'
-      });
+      sendSuccess(res, {
+        predictorName: `semantic_retriever_${merchantId}`,
+        merchantId,
+        status: 'deployed'
+      }, 201, requestId);
     } catch (error: any) {
       await this.auditLogRepository.create({
         merchantId: req.body.merchantId,
@@ -64,12 +56,7 @@ export class SemanticRetrievalController {
         userAgent: req.get('User-Agent')
       });
 
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] || 'unknown'
-      });
+      sendError(res, error.message, 500, requestId);
     }
   }
 
@@ -78,6 +65,7 @@ export class SemanticRetrievalController {
    * POST /api/semantic-retrieval/search
    */
   async searchDocuments(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const params: SemanticRetrievalParams = {
         query: req.body.query,
@@ -90,12 +78,7 @@ export class SemanticRetrievalController {
 
       // Validate required parameters
       if (!params.query || !params.merchantId) {
-        res.status(400).json({
-          success: false,
-          error: 'query and merchantId are required',
-          timestamp: new Date().toISOString(),
-          requestId: req.headers['x-request-id'] || 'unknown'
-        });
+        sendError(res, 'query and merchantId are required', 400, requestId);
         return;
       }
 

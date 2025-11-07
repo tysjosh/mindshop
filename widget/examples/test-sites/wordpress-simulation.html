@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Site: WordPress/WooCommerce Simulation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f7f7f7;
+      color: #333;
+    }
+    
+    /* WordPress-style header */
+    .wp-header {
+      background: #23282d;
+      color: white;
+      padding: 0;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+    }
+    
+    .wp-header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .wp-logo {
+      font-size: 24px;
+      font-weight: 600;
+    }
+    
+    .wp-nav {
+      display: flex;
+      gap: 30px;
+    }
+    
+    .wp-nav a {
+      color: #a0a5aa;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    
+    .wp-nav a:hover {
+      color: white;
+    }
+    
+    /* WordPress-style admin bar */
+    .wp-admin-bar {
+      background: #32373c;
+      color: #eee;
+      padding: 8px 20px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .wp-admin-bar .badge {
+      background: #0073aa;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      margin-left: 10px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+    
+    /* WooCommerce-style breadcrumb */
+    .woocommerce-breadcrumb {
+      background: white;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .woocommerce-breadcrumb a {
+      color: #0073aa;
+      text-decoration: none;
+    }
+    
+    /* WordPress-style notices */
+    .wp-notice {
+      background: #d7f0ff;
+      border-left: 4px solid #0073aa;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+    
+    .wp-notice.success {
+      background: #ecf7ed;
+      border-left-color: #46b450;
+    }
+    
+    .wp-notice strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    /* WooCommerce products grid */
+    .woocommerce-products {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .woocommerce-product {
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 4px;
+      overflow: hidden;
+      transition: box-shadow 0.3s;
+    }
+    
+    .woocommerce-product:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .woocommerce-product-image {
+      width: 100%;
+      height: 280px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 72px;
+      position: relative;
+    }
+    
+    .woocommerce-product-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #46b450;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .woocommerce-product-content {
+      padding: 20px;
+    }
+    
+    .woocommerce-product-category {
+      color: #666;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    
+    .woocommerce-product-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .woocommerce-product-title a {
+      color: #333;
+      text-decoration: none;
+    }
+    
+    .woocommerce-product-title a:hover {
+      color: #0073aa;
+    }
+    
+    .woocommerce-product-rating {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    
+    .stars {
+      color: #ffa500;
+    }
+    
+    .woocommerce-product-price {
+      font-size: 24px;
+      font-weight: 700;
+      color: #46b450;
+      margin-bottom: 15px;
+    }
+    
+    .woocommerce-product-price del {
+      font-size: 18px;
+      color: #999;
+      margin-right: 10px;
+    }
+    
+    .woocommerce-add-to-cart {
+      width: 100%;
+      background: #0073aa;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+    
+    .woocommerce-add-to-cart:hover {
+      background: #005a87;
+    }
+    
+    /* WordPress-style sidebar */
+    .wp-sidebar {
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 4px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .wp-sidebar h3 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #0073aa;
+    }
+    
+    .wp-widget {
+      margin-bottom: 20px;
+    }
+    
+    .wp-widget:last-child {
+      margin-bottom: 0;
+    }
+    
+    .wp-widget-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .wp-widget-content {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #666;
+    }
+    
+    /* WordPress-style footer */
+    .wp-footer {
+      background: #23282d;
+      color: #a0a5aa;
+      padding: 40px 0;
+      margin-top: 40px;
+    }
+    
+    .wp-footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      text-align: center;
+    }
+    
+    .wp-footer p {
+      margin: 5px 0;
+    }
+    
+    /* Test controls */
+    .test-controls {
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 4px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .test-controls h3 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #23282d;
+    }
+    
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+    
+    .wp-button {
+      background: #0073aa;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.3s;
+    }
+    
+    .wp-button:hover {
+      background: #005a87;
+    }
+    
+    .wp-button.secondary {
+      background: #666;
+    }
+    
+    .wp-button.secondary:hover {
+      background: #555;
+    }
+    
+    /* Console log */
+    .wp-console {
+      background: #23282d;
+      color: #a0a5aa;
+      padding: 20px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .wp-console-line {
+      padding: 5px 0;
+      border-bottom: 1px solid #32373c;
+    }
+    
+    .wp-console-line:last-child {
+      border-bottom: none;
+    }
+    
+    .wp-console-time {
+      color: #666;
+      margin-right: 10px;
+    }
+    
+    .wp-console-type {
+      font-weight: 600;
+      margin-right: 10px;
+    }
+    
+    .wp-console-type.info { color: #0073aa; }
+    .wp-console-type.success { color: #46b450; }
+    .wp-console-type.error { color: #dc3232; }
+  </style>
+</head>
+<body>
+  <!-- WordPress Admin Bar -->
+  <div class="wp-admin-bar">
+    <div>
+      <span>WordPress Admin</span>
+      <span class="badge">TEST MODE</span>
+    </div>
+    <div>RAG Assistant Widget Integration Test</div>
+  </div>
+
+  <!-- WordPress Header -->
+  <div class="wp-header">
+    <div class="wp-header-inner">
+      <div class="wp-logo">🛒 WooCommerce Store</div>
+      <nav class="wp-nav">
+        <a href="#">Home</a>
+        <a href="#">Shop</a>
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Breadcrumb -->
+    <div class="woocommerce-breadcrumb">
+      <a href="#">Home</a> / <a href="#">Shop</a> / Products
+    </div>
+
+    <!-- Notice -->
+    <div class="wp-notice success">
+      <strong>✓ Widget Integration Active</strong>
+      The RAG Assistant widget is successfully integrated with your WooCommerce store.
+    </div>
+
+    <!-- Test Controls -->
+    <div class="test-controls">
+      <h3>🧪 Widget Test Controls</h3>
+      <div class="button-grid">
+        <button class="wp-button" onclick="testOpen()">Open Widget</button>
+        <button class="wp-button" onclick="testClose()">Close Widget</button>
+        <button class="wp-button" onclick="testMessage()">Send Message</button>
+        <button class="wp-button secondary" onclick="testClear()">Clear History</button>
+        <button class="wp-button secondary" onclick="testReset()">Reset Session</button>
+        <button class="wp-button secondary" onclick="testSession()">Get Session</button>
+      </div>
+    </div>
+
+    <!-- Products -->
+    <div class="woocommerce-products">
+      <div class="woocommerce-product">
+        <div class="woocommerce-product-image">
+          📱
+          <span class="woocommerce-product-badge">Sale!</span>
+        </div>
+        <div class="woocommerce-product-content">
+          <div class="woocommerce-product-category">Electronics</div>
+          <h2 class="woocommerce-product-title">
+            <a href="#">iPhone 15 Pro Max</a>
+          </h2>
+          <div class="woocommerce-product-rating">
+            <span class="stars">★★★★★</span>
+            <span>(128 reviews)</span>
+          </div>
+          <div class="woocommerce-product-price">
+            <del>$1,299.00</del> $1,199.00
+          </div>
+          <button class="woocommerce-add-to-cart" onclick="addToCart('iPhone 15 Pro Max', 1199)">
+            Add to cart
+          </button>
+        </div>
+      </div>
+
+      <div class="woocommerce-product">
+        <div class="woocommerce-product-image">💻</div>
+        <div class="woocommerce-product-content">
+          <div class="woocommerce-product-category">Computers</div>
+          <h2 class="woocommerce-product-title">
+            <a href="#">MacBook Pro 16"</a>
+          </h2>
+          <div class="woocommerce-product-rating">
+            <span class="stars">★★★★★</span>
+            <span>(95 reviews)</span>
+          </div>
+          <div class="woocommerce-product-price">$2,499.00</div>
+          <button class="woocommerce-add-to-cart" onclick="addToCart('MacBook Pro 16', 2499)">
+            Add to cart
+          </button>
+        </div>
+      </div>
+
+      <div class="woocommerce-product">
+        <div class="woocommerce-product-image">
+          ⌚
+          <span class="woocommerce-product-badge">New!</span>
+        </div>
+        <div class="woocommerce-product-content">
+          <div class="woocommerce-product-category">Wearables</div>
+          <h2 class="woocommerce-product-title">
+            <a href="#">Apple Watch Ultra 2</a>
+          </h2>
+          <div class="woocommerce-product-rating">
+            <span class="stars">★★★★☆</span>
+            <span>(67 reviews)</span>
+          </div>
+          <div class="woocommerce-product-price">$799.00</div>
+          <button class="woocommerce-add-to-cart" onclick="addToCart('Apple Watch Ultra 2', 799)">
+            Add to cart
+          </button>
+        </div>
+      </div>
+
+      <div class="woocommerce-product">
+        <div class="woocommerce-product-image">🎧</div>
+        <div class="woocommerce-product-content">
+          <div class="woocommerce-product-category">Audio</div>
+          <h2 class="woocommerce-product-title">
+            <a href="#">AirPods Max</a>
+          </h2>
+          <div class="woocommerce-product-rating">
+            <span class="stars">★★★★★</span>
+            <span>(203 reviews)</span>
+          </div>
+          <div class="woocommerce-product-price">$549.00</div>
+          <button class="woocommerce-add-to-cart" onclick="addToCart('AirPods Max', 549)">
+            Add to cart
+          </button>
+        </div>
+      </div>
+
+      <div class="woocommerce-product">
+        <div class="woocommerce-product-image">📷</div>
+        <div class="woocommerce-product-content">
+          <div class="woocommerce-product-category">Cameras</div>
+          <h2 class="woocommerce-product-title">
+            <a href="#">Sony A7 IV</a>
+          </h2>
+          <div class="woocommerce-product-rating">
+            <span class="stars">★★★★★</span>
+            <span>(156 reviews)</span>
+          </div>
+          <div class="woocommerce-product-price">$2,498.00</div>
+          <button class="woocommerce-add-to-cart" onclick="addToCart('Sony A7 IV', 2498)">
+            Add to cart
+          </button>
+        </div>
+      </div>
+
+      <div class="woocommerce-product">
+        <div class="woocommerce-product-image">🎮</div>
+        <div class="woocommerce-product-content">
+          <div class="woocommerce-product-category">Gaming</div>
+          <h2 class="woocommerce-product-title">
+            <a href="#">PlayStation 5</a>
+          </h2>
+          <div class="woocommerce-product-rating">
+            <span class="stars">★★★★★</span>
+            <span>(412 reviews)</span>
+          </div>
+          <div class="woocommerce-product-price">$499.00</div>
+          <button class="woocommerce-add-to-cart" onclick="addToCart('PlayStation 5', 499)">
+            Add to cart
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="wp-sidebar">
+      <h3>📊 Integration Status</h3>
+      <div class="wp-widget">
+        <div class="wp-widget-title">Widget Status</div>
+        <div class="wp-widget-content" id="widgetStatus">
+          Initializing...
+        </div>
+      </div>
+      <div class="wp-widget">
+        <div class="wp-widget-title">Event Log</div>
+        <div class="wp-console" id="console">
+          <div class="wp-console-line">
+            <span class="wp-console-time">[00:00:00]</span>
+            <span class="wp-console-type info">[INFO]</span>
+            <span>Console initialized</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WordPress Footer -->
+  <div class="wp-footer">
+    <div class="wp-footer-inner">
+      <p><strong>WooCommerce Store</strong> - Powered by WordPress</p>
+      <p>RAG Assistant Widget Integration Test © 2024</p>
+    </div>
+  </div>
+
+  <!-- RAG Assistant Widget -->
+  <script src="../../dist/widget.js"></script>
+  <script>
+    const consoleEl = document.getElementById('console');
+    const statusEl = document.getElementById('widgetStatus');
+    let assistant = null;
+    
+    function log(message, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.className = 'wp-console-line';
+      line.innerHTML = `
+        <span class="wp-console-time">[${time}]</span>
+        <span class="wp-console-type ${type}">[${type.toUpperCase()}]</span>
+        <span>${message}</span>
+      `;
+      consoleEl.appendChild(line);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+    
+    function updateStatus(message, type = 'info') {
+      const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : '⏳';
+      statusEl.innerHTML = `${icon} ${message}`;
+      statusEl.style.color = type === 'success' ? '#46b450' : type === 'error' ? '#dc3232' : '#666';
+    }
+    
+    function testOpen() {
+      log('Opening widget...', 'info');
+      if (assistant) {
+        assistant.open();
+        log('Widget opened', 'success');
+      }
+    }
+    
+    function testClose() {
+      log('Closing widget...', 'info');
+      if (assistant) {
+        assistant.close();
+        log('Widget closed', 'success');
+      }
+    }
+    
+    function testMessage() {
+      log('Sending test message...', 'info');
+      if (assistant) {
+        assistant.sendMessage('Show me products under $1000');
+        log('Message sent', 'success');
+      }
+    }
+    
+    function testClear() {
+      log('Clearing history...', 'info');
+      if (assistant) {
+        assistant.clearHistory();
+        log('History cleared', 'success');
+      }
+    }
+    
+    function testReset() {
+      log('Resetting session...', 'info');
+      if (assistant) {
+        assistant.resetSession();
+        log('Session reset', 'success');
+      }
+    }
+    
+    function testSession() {
+      log('Getting session ID...', 'info');
+      if (assistant) {
+        const sessionId = assistant.getSessionId();
+        log(`Session ID: ${sessionId}`, 'success');
+        alert(`Session ID: ${sessionId}`);
+      }
+    }
+    
+    function addToCart(productName, price) {
+      log(`Add to cart: ${productName} ($${price})`, 'info');
+      alert(`Added "${productName}" to cart!\n\nPrice: $${price.toFixed(2)}`);
+    }
+    
+    // Initialize widget
+    log('Initializing RAG Assistant widget...', 'info');
+    updateStatus('Initializing widget...', 'info');
+    
+    try {
+      assistant = new RAGAssistant({
+        merchantId: 'test_woocommerce_2024',
+        apiKey: 'pk_test_woocommerce_key',
+        apiBaseUrl: 'http://localhost:3000',
+        
+        theme: {
+          primaryColor: '#0073aa',
+          position: 'bottom-right'
+        },
+        
+        behavior: {
+          autoOpen: false,
+          greeting: 'Hi! 👋 Welcome to our WooCommerce store. How can I help you today?',
+          placeholder: 'Ask about products...',
+          maxRecommendations: 3
+        },
+        
+        integration: {
+          addToCartCallback: (product) => {
+            log(`Callback: Add to cart - ${product.title}`, 'success');
+            alert(`Added "${product.title}" to cart!\n\nPrice: $${product.price}`);
+          },
+          
+          checkoutCallback: (items) => {
+            log(`Callback: Checkout - ${items.length} items`, 'success');
+            alert(`Proceeding to checkout with ${items.length} item(s)`);
+          },
+          
+          analyticsCallback: (event) => {
+            log(`Callback: Analytics - ${event.event}`, 'info');
+          }
+        }
+      });
+      
+      log('Widget initialized successfully', 'success');
+      updateStatus('Widget active and ready', 'success');
+      
+    } catch (error) {
+      log(`Failed to initialize widget: ${error.message}`, 'error');
+      updateStatus(`Initialization failed: ${error.message}`, 'error');
+      console.error('Widget initialization error:', error);
+    }
+  </script>
+</body>
+</html>

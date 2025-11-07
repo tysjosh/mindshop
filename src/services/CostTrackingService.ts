@@ -216,6 +216,13 @@ export class CostTrackingService extends BaseRepository {
    */
   async getSessionCostSummary(sessionId: string): Promise<SessionCostSummary | null> {
     try {
+      // Validate UUID format to prevent database errors
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(sessionId)) {
+        // Return null for invalid session IDs instead of throwing error
+        return null;
+      }
+
       const costs = await this.db
         .select()
         .from(costTracking)

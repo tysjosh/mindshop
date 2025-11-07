@@ -1,0 +1,730 @@
+openapi: 3.0.3
+info:
+  title: RAG Assistant Merchant Platform API
+  description: |
+    The RAG Assistant Merchant Platform API enables e-commerce businesses to integrate 
+    AI-powered product recommendations into their websites.
+    
+    ## Authentication
+    
+    All API requests require authentication using either:
+    - **JWT Token** (for merchant portal access)
+    - **API Key** (for programmatic access)
+    
+    ## Rate Limits
+    
+    Rate limits vary by plan:
+    - Starter: 5,000 requests/day
+    - Professional: 50,000 requests/day
+    - Enterprise: Unlimited
+    
+    ## Base URLs
+    
+    - Production: `https://api.rag-assistant.com`
+    - Development: `https://api-dev.rag-assistant.com`
+  version: 1.2.0
+  contact:
+    name: RAG Assistant Support
+    email: api@rag-assistant.com
+    url: https://rag-assistant.com/support
+  license:
+    name: Proprietary
+    url: https://rag-assistant.com/terms
+
+servers:
+  - url: https://api.rag-assistant.com
+    description: Production server
+  - url: https://api-dev.rag-assistant.com
+    description: Development server
+
+tags:
+  - name: Merchants
+    description: Merchant account management
+  - name: API Keys
+    description: API key management
+  - name: Chat
+    description: Chat and query endpoints
+  - name: Documents
+    description: Document management
+  - name: Usage
+    description: Usage tracking and limits
+  - name: Analytics
+    description: Analytics and insights
+  - name: Webhooks
+    description: Webhook management
+
+paths:
+  /api/merchants/register:
+    post:
+      tags:
+        - Merchants
+      summary: Register new merchant
+      description: Create a new merchant account
+      operationId: registerMerchant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - companyName
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john@acme.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: SecurePass123!
+                companyName:
+                  type: string
+                  example: ACME Electronics
+                website:
+                  type: string
+                  format: uri
+                  example: https://acme.com
+                industry:
+                  type: string
+                  example: Electronics
+      responses:
+        '200':
+          description: Merchant registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantRegistrationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/merchants/login:
+    post:
+      tags:
+        - Merchants
+      summary: Login merchant
+      description: Authenticate merchant and receive JWT tokens
+      operationId: loginMerchant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/merchants/{merchantId}/profile:
+    get:
+      tags:
+        - Merchants
+      summary: Get merchant profile
+      description: Retrieve merchant profile information
+      operationId: getMerchantProfile
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MerchantId'
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MerchantProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/merchants/{merchantId}/api-keys:
+    post:
+      tags:
+        - API Keys
+      summary: Create API key
+      description: Generate a new API key
+      operationId: createApiKey
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MerchantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApiKeyRequest'
+      responses:
+        '200':
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    get:
+      tags:
+        - API Keys
+      summary: List API keys
+      description: Get all API keys for a merchant
+      operationId: listApiKeys
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MerchantId'
+      responses:
+        '200':
+          description: API keys retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKey'
+
+  /api/chat:
+    post:
+      tags:
+        - Chat
+      summary: Send chat query
+      description: Process a user query and get AI-powered recommendations
+      operationId: sendChatQuery
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Query processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /api/documents:
+    post:
+      tags:
+        - Documents
+      summary: Create document
+      description: Add a single document (product, FAQ, policy, etc.)
+      operationId: createDocument
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Document'
+      responses:
+        '200':
+          description: Document created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/documents/bulk:
+    post:
+      tags:
+        - Documents
+      summary: Bulk upload documents
+      description: Upload multiple documents at once
+      operationId: bulkUploadDocuments
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - documents
+              properties:
+                documents:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Document'
+      responses:
+        '200':
+          description: Documents uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkUploadResponse'
+
+  /api/merchants/{merchantId}/usage/current:
+    get:
+      tags:
+        - Usage
+      summary: Get current usage
+      description: Get current billing period usage
+      operationId: getCurrentUsage
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MerchantId'
+      responses:
+        '200':
+          description: Usage retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageResponse'
+
+  /api/merchants/{merchantId}/analytics/overview:
+    get:
+      tags:
+        - Analytics
+      summary: Get analytics overview
+      description: Get analytics for a date range
+      operationId: getAnalyticsOverview
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MerchantId'
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsOverview'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from login endpoint
+    
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      description: API key with pk_live_ or pk_test_ prefix
+
+  parameters:
+    MerchantId:
+      name: merchantId
+      in: path
+      required: true
+      schema:
+        type: string
+      example: acme_electronics_2024
+
+  schemas:
+    MerchantRegistrationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            merchantId:
+              type: string
+            email:
+              type: string
+            status:
+              type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            idToken:
+              type: string
+            refreshToken:
+              type: string
+            expiresIn:
+              type: integer
+            merchantId:
+              type: string
+
+    MerchantProfile:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            merchantId:
+              type: string
+            email:
+              type: string
+            companyName:
+              type: string
+            website:
+              type: string
+            industry:
+              type: string
+            plan:
+              type: string
+            status:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+
+    CreateApiKeyRequest:
+      type: object
+      required:
+        - name
+        - environment
+      properties:
+        name:
+          type: string
+          example: Production Key
+        environment:
+          type: string
+          enum: [development, production]
+        permissions:
+          type: array
+          items:
+            type: string
+          example: ["chat:read", "documents:write"]
+        expiresInDays:
+          type: integer
+          example: 365
+
+    ApiKeyResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            keyId:
+              type: string
+            key:
+              type: string
+              description: Full API key (shown only once)
+            prefix:
+              type: string
+            environment:
+              type: string
+            expiresAt:
+              type: string
+              format: date-time
+
+    ApiKey:
+      type: object
+      properties:
+        keyId:
+          type: string
+        name:
+          type: string
+        prefix:
+          type: string
+        environment:
+          type: string
+        status:
+          type: string
+        lastUsedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+
+    ChatRequest:
+      type: object
+      required:
+        - query
+        - sessionId
+        - merchantId
+      properties:
+        query:
+          type: string
+          example: Show me wireless headphones under $200
+        sessionId:
+          type: string
+        merchantId:
+          type: string
+        userId:
+          type: string
+        context:
+          type: object
+
+    ChatResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            answer:
+              type: string
+            recommendations:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProductRecommendation'
+            intent:
+              type: string
+            confidence:
+              type: number
+            sessionId:
+              type: string
+            executionTime:
+              type: integer
+
+    ProductRecommendation:
+      type: object
+      properties:
+        sku:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        imageUrl:
+          type: string
+        inStock:
+          type: boolean
+        confidence:
+          type: number
+
+    Document:
+      type: object
+      required:
+        - type
+        - title
+        - content
+      properties:
+        type:
+          type: string
+          enum: [product, faq, policy, review]
+        title:
+          type: string
+        content:
+          type: string
+        metadata:
+          type: object
+
+    DocumentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            documentId:
+              type: string
+            status:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+
+    BulkUploadResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            total:
+              type: integer
+            successful:
+              type: integer
+            failed:
+              type: integer
+            documents:
+              type: array
+              items:
+                type: object
+                properties:
+                  documentId:
+                    type: string
+                  status:
+                    type: string
+
+    UsageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            queries:
+              $ref: '#/components/schemas/UsageMetric'
+            documents:
+              $ref: '#/components/schemas/UsageMetric'
+            apiCalls:
+              $ref: '#/components/schemas/UsageMetric'
+            storageGb:
+              $ref: '#/components/schemas/UsageMetric'
+            costEstimate:
+              type: number
+
+    UsageMetric:
+      type: object
+      properties:
+        count:
+          type: number
+        limit:
+          type: number
+        percentage:
+          type: number
+
+    AnalyticsOverview:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            totalQueries:
+              type: integer
+            activeSessions:
+              type: integer
+            avgResponseTime:
+              type: integer
+            successRate:
+              type: number
+            topQueries:
+              type: array
+              items:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  count:
+                    type: integer
+                  avgConfidence:
+                    type: number
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        code:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Conflict:
+      description: Resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: string
+            format: date-time
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

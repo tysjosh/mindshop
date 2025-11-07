@@ -1,0 +1,12 @@
+src/
+examples/
+node_modules/
+*.log
+.DS_Store
+coverage/
+.env
+.env.local
+tsconfig.json
+webpack.config.js
+jest.config.js
+.eslintrc.json

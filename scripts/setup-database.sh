@@ -156,7 +156,7 @@ cleanup_tables() {
     fi
 }
 
-# Insert sample data for testing
+# Insert sample data for testing (legacy)
 insert_sample_data() {
     log "Inserting sample data for testing..."
     
@@ -179,6 +179,28 @@ insert_sample_data() {
     "
     
     success "Sample data inserted"
+}
+
+# Insert comprehensive seed data for development
+seed_development_data() {
+    log "Seeding comprehensive development data..."
+    
+    local seed_file="database/migrations/008_seed_data_development.sql"
+    
+    if [ ! -f "$seed_file" ]; then
+        error "Seed data file not found: $seed_file"
+        return 1
+    fi
+    
+    log "Executing seed data from $seed_file"
+    
+    if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_NAME" -f "$seed_file"; then
+        success "Development seed data inserted successfully"
+        return 0
+    else
+        error "Failed to insert seed data"
+        return 1
+    fi
 }
 
 # Main function
@@ -247,6 +269,11 @@ case "${1:-setup}" in
             insert_sample_data
         fi
         ;;
+    "seed")
+        if test_connection; then
+            seed_development_data
+        fi
+        ;;
     "clean")
         if test_connection; then
             cleanup_tables
@@ -256,12 +283,13 @@ case "${1:-setup}" in
         test_connection
         ;;
     *)
-        echo "Usage: $0 [setup|info|sample|clean|test]"
+        echo "Usage: $0 [setup|info|sample|seed|clean|test]"
         echo ""
         echo "Commands:"
         echo "  setup  - Create all database tables (default)"
         echo "  info   - Show table information"
-        echo "  sample - Insert sample data for testing"
+        echo "  sample - Insert sample data for testing (legacy)"
+        echo "  seed   - Insert comprehensive development seed data"
         echo "  clean  - Drop all tables (DANGEROUS)"
         echo "  test   - Test database connection"
         echo ""

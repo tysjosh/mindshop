@@ -1,5 +1,13 @@
 import { DatabaseConfig, RedisConfig, AWSConfig, MindsDBConfig, BedrockConfig } from '../types';
 
+export interface CognitoConfig {
+  userPoolId: string;
+  clientId: string;
+  region: string;
+  enabled: boolean;
+  enableMockAuth: boolean;
+}
+
 export interface AppConfig {
   port: number;
   nodeEnv: string;
@@ -34,6 +42,7 @@ export interface AppConfig {
     sessionTableName: string;
     region: string;
   };
+  cognito: CognitoConfig;
   security: {
     jwtSecret: string;
     encryptionKey: string;
@@ -116,6 +125,15 @@ export const config: AppConfig = {
     region: process.env.AWS_REGION || 'us-east-1',
   },
   
+  cognito: {
+    userPoolId: process.env.COGNITO_USER_POOL_ID || '',
+    clientId: process.env.COGNITO_CLIENT_ID || '',
+    region: process.env.COGNITO_REGION || process.env.AWS_REGION || 'us-east-1',
+    enabled: process.env.ENABLE_COGNITO_AUTH === 'true',
+    enableMockAuth: process.env.DISABLE_AUTH_FOR_DEVELOPMENT === 'true' || 
+                    (process.env.NODE_ENV === 'development' && process.env.ENABLE_COGNITO_AUTH !== 'true'),
+  },
+  
   security: {
     jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
     encryptionKey: process.env.ENCRYPTION_KEY || 'your-encryption-key',
@@ -140,5 +158,147 @@ export const config: AppConfig = {
     modelArtifactsKey: process.env.MODEL_ARTIFACTS_KMS_KEY,
   },
 };
+
+/**
+ * Validate Cognito configuration
+ * Returns validation result with any errors
+ */
+export function validateCognitoConfig(): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  // Skip validation if Cognito is disabled or mock auth is enabled
+  if (!config.cognito.enabled || config.cognito.enableMockAuth) {
+    return { valid: true, errors: [] };
+  }
+  
+  // Validate required fields when Cognito is enabled
+  if (!config.cognito.userPoolId || config.cognito.userPoolId === '') {
+    errors.push('COGNITO_USER_POOL_ID is required when ENABLE_COGNITO_AUTH=true');
+  }
+  
+  if (!config.cognito.clientId || config.cognito.clientId === '') {
+    errors.push('COGNITO_CLIENT_ID is required when ENABLE_COGNITO_AUTH=true');
+  }
+  
+  if (!config.cognito.region || config.cognito.region === '') {
+    errors.push('COGNITO_REGION is required when ENABLE_COGNITO_AUTH=true');
+  }
+  
+  // Validate User Pool ID format (should be like us-east-1_XXXXXXXXX)
+  if (config.cognito.userPoolId && !config.cognito.userPoolId.match(/^[a-z]{2}-[a-z]+-\d+_[A-Za-z0-9]+$/)) {
+    errors.push('COGNITO_USER_POOL_ID has invalid format (expected: region_poolId, e.g., us-east-1_XXXXXXXXX)');
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Validate all required configuration at startup
+ * Logs warnings for missing optional config and errors for missing required config
+ */
+export function validateConfig(): { valid: boolean; errors: string[]; warnings: string[] } {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  
+  // Validate Cognito configuration
+  const cognitoValidation = validateCognitoConfig();
+  if (!cognitoValidation.valid) {
+    errors.push(...cognitoValidation.errors);
+  }
+  
+  // Validate database configuration
+  if (!config.database.host) {
+    errors.push('DB_HOST is required');
+  }
+  if (!config.database.database) {
+    errors.push('DB_NAME is required');
+  }
+  
+  // Validate security configuration
+  if (config.nodeEnv === 'production') {
+    if (config.security.jwtSecret === 'your-secret-key') {
+      errors.push('JWT_SECRET must be changed in production');
+    }
+    if (config.security.encryptionKey === 'your-encryption-key') {
+      errors.push('ENCRYPTION_KEY must be changed in production');
+    }
+  }
+  
+  // Warn about optional configurations
+  if (!config.mindsdb.apiKey && config.nodeEnv === 'production') {
+    warnings.push('MINDSDB_API_KEY is not set (may be required for production MindsDB instances)');
+  }
+  
+  if (!config.bedrock.agentId && config.nodeEnv === 'production') {
+    warnings.push('BEDROCK_AGENT_ID is not set (Bedrock Agent features will be unavailable)');
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Log configuration status at startup
+ * Shows which features are enabled/disabled and any configuration issues
+ */
+export function logConfigStatus(): void {
+  console.log('\n=== Configuration Status ===');
+  console.log(`Environment: ${config.nodeEnv}`);
+  console.log(`Port: ${config.port}`);
+  console.log(`Log Level: ${config.logLevel}`);
+  
+  console.log('\n--- Authentication ---');
+  if (config.cognito.enableMockAuth) {
+    console.log('🔓 Mock Authentication: ENABLED (development mode)');
+    console.log('   Cognito authentication is disabled for local development');
+  } else if (config.cognito.enabled) {
+    console.log('🔒 Cognito Authentication: ENABLED');
+    console.log(`   User Pool ID: ${config.cognito.userPoolId}`);
+    console.log(`   Client ID: ${config.cognito.clientId}`);
+    console.log(`   Region: ${config.cognito.region}`);
+  } else {
+    console.log('⚠️  Cognito Authentication: DISABLED');
+    console.log('   Set ENABLE_COGNITO_AUTH=true to enable');
+  }
+  
+  console.log('\n--- Database ---');
+  console.log(`PostgreSQL: ${config.database.host}:${config.database.port}/${config.database.database}`);
+  console.log(`Redis: ${config.redis.host}:${config.redis.port}`);
+  
+  console.log('\n--- AWS Services ---');
+  console.log(`Region: ${config.aws.region}`);
+  console.log(`Bedrock Model: ${config.bedrock.modelId}`);
+  console.log(`MindsDB Endpoint: ${config.mindsdb.endpoint}`);
+  
+  console.log('\n--- Features ---');
+  console.log(`Metrics: ${config.monitoring.metricsEnabled ? 'ENABLED' : 'DISABLED'}`);
+  console.log(`Tracing: ${config.monitoring.tracingEnabled ? 'ENABLED' : 'DISABLED'}`);
+  console.log(`Postgres Sessions: ${process.env.USE_POSTGRES_SESSIONS === 'true' ? 'ENABLED' : 'DISABLED'}`);
+  
+  // Validate and show any errors or warnings
+  const validation = validateConfig();
+  
+  if (validation.warnings.length > 0) {
+    console.log('\n⚠️  Configuration Warnings:');
+    validation.warnings.forEach(warning => console.log(`   - ${warning}`));
+  }
+  
+  if (validation.errors.length > 0) {
+    console.log('\n❌ Configuration Errors:');
+    validation.errors.forEach(error => console.log(`   - ${error}`));
+  }
+  
+  if (validation.valid && validation.warnings.length === 0) {
+    console.log('\n✅ Configuration is valid');
+  }
+  
+  console.log('===========================\n');
+}
 
 export default config;

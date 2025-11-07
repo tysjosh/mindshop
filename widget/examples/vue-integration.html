@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Assistant - Vue Integration Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #42b883 0%, #35495e 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #42b883 0%, #35495e 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+    
+    .content {
+      padding: 40px;
+    }
+    
+    .section {
+      margin-bottom: 40px;
+    }
+    
+    .section h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #42b883;
+    }
+    
+    .code-block {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      overflow-x: auto;
+    }
+    
+    .code-block pre {
+      margin: 0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    .info-box {
+      background: #e8f5e9;
+      border-left: 4px solid #42b883;
+      padding: 20px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🖖 Vue Integration</h1>
+      <p>How to integrate RAG Assistant into your Vue application</p>
+    </div>
+    
+    <div class="content">
+      <div class="section">
+        <h2>Installation</h2>
+        <div class="code-block">
+          <pre>npm install @rag-assistant/widget
+# or
+yarn add @rag-assistant/widget</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 1: Vue 3 Composition API (Recommended)</h2>
+        <p>Using the modern Composition API with <code>onMounted</code> hook.</p>
+        
+        <div class="code-block">
+          <pre>&lt;template&gt;
+  &lt;div id="app"&gt;
+    &lt;h1&gt;My Vue Store&lt;/h1&gt;
+    
+    &lt;button @click="openChat"&gt;
+      💬 Chat with us
+    &lt;/button&gt;
+    
+    &lt;button @click="sendMessage('Show me laptops')"&gt;
+      🔍 Find Laptops
+    &lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { onMounted, ref } from 'vue';
+import RAGAssistant from '@rag-assistant/widget';
+
+const assistant = ref(null);
+
+onMounted(() => {
+  assistant.value = new RAGAssistant({
+    merchantId: 'your_merchant_id',
+    apiKey: 'pk_live_...',
+    
+    theme: {
+      primaryColor: '#42b883',
+      position: 'bottom-right'
+    },
+    
+    behavior: {
+      autoOpen: false,
+      greeting: 'Hi! 👋 How can I help you today?',
+      maxRecommendations: 3
+    },
+    
+    integration: {
+      addToCartCallback: (product) => {
+        // Use Vuex or Pinia store
+        // store.dispatch('cart/addItem', product);
+        console.log('Add to cart:', product);
+      },
+      
+      checkoutCallback: (items) => {
+        // Navigate to checkout
+        // router.push('/checkout');
+        console.log('Checkout:', items);
+      },
+      
+      analyticsCallback: (event) => {
+        // Track with your analytics
+        console.log('Analytics:', event);
+      }
+    }
+  });
+});
+
+const openChat = () => {
+  if (assistant.value) {
+    assistant.value.open();
+  }
+};
+
+const sendMessage = (message) => {
+  if (assistant.value) {
+    assistant.value.sendMessage(message);
+  }
+};
+&lt;/script&gt;</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 2: Vue 3 Options API</h2>
+        <p>Using the traditional Options API.</p>
+        
+        <div class="code-block">
+          <pre>&lt;template&gt;
+  &lt;div id="app"&gt;
+    &lt;h1&gt;My Vue Store&lt;/h1&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+import RAGAssistant from '@rag-assistant/widget';
+
+export default {
+  name: 'App',
+  
+  data() {
+    return {
+      assistant: null
+    };
+  },
+  
+  mounted() {
+    this.assistant = new RAGAssistant({
+      merchantId: 'your_merchant_id',
+      apiKey: 'pk_live_...',
+      
+      theme: {
+        primaryColor: '#42b883',
+        position: 'bottom-right'
+      },
+      
+      integration: {
+        addToCartCallback: (product) => {
+          // Call component method
+          this.addToCart(product);
+        },
+        
+        checkoutCallback: (items) => {
+          // Navigate using Vue Router
+          this.$router.push('/checkout');
+        }
+      }
+    });
+  },
+  
+  methods: {
+    addToCart(product) {
+      // Your cart logic
+      console.log('Add to cart:', product);
+    },
+    
+    openChat() {
+      if (this.assistant) {
+        this.assistant.open();
+      }
+    }
+  },
+  
+  beforeUnmount() {
+    // Cleanup
+    this.assistant = null;
+  }
+};
+&lt;/script&gt;</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 3: With Vuex Store</h2>
+        <p>Integrate with Vuex for state management.</p>
+        
+        <div class="code-block">
+          <pre>// store/index.js
+import { createStore } from 'vuex';
+
+export default createStore({
+  state: {
+    cart: []
+  },
+  
+  mutations: {
+    ADD_TO_CART(state, product) {
+      state.cart.push(product);
+    }
+  },
+  
+  actions: {
+    addToCart({ commit }, product) {
+      commit('ADD_TO_CART', product);
+    }
+  }
+});
+
+// App.vue
+&lt;script setup&gt;
+import { onMounted } from 'vue';
+import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
+import RAGAssistant from '@rag-assistant/widget';
+
+const store = useStore();
+const router = useRouter();
+
+onMounted(() => {
+  const assistant = new RAGAssistant({
+    merchantId: 'your_merchant_id',
+    apiKey: 'pk_live_...',
+    
+    integration: {
+      addToCartCallback: (product) => {
+        // Dispatch Vuex action
+        store.dispatch('addToCart', product);
+        
+        // Show notification
+        ElMessage.success(`Added ${product.title} to cart!`);
+      },
+      
+      checkoutCallback: (items) => {
+        // Navigate to checkout
+        router.push('/checkout');
+      },
+      
+      analyticsCallback: (event) => {
+        // Track with Google Analytics
+        if (window.gtag) {
+          window.gtag('event', event.event, {
+            event_category: 'RAG Assistant',
+            event_label: event.query
+          });
+        }
+      }
+    }
+  });
+});
+&lt;/script&gt;</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 4: With Pinia Store (Vue 3)</h2>
+        <p>Using Pinia, the new official state management for Vue 3.</p>
+        
+        <div class="code-block">
+          <pre>// stores/cart.js
+import { defineStore } from 'pinia';
+
+export const useCartStore = defineStore('cart', {
+  state: () => ({
+    items: []
+  }),
+  
+  actions: {
+    addItem(product) {
+      this.items.push(product);
+    }
+  }
+});
+
+// App.vue
+&lt;script setup&gt;
+import { onMounted } from 'vue';
+import { useCartStore } from './stores/cart';
+import { useRouter } from 'vue-router';
+import RAGAssistant from '@rag-assistant/widget';
+
+const cartStore = useCartStore();
+const router = useRouter();
+
+onMounted(() => {
+  const assistant = new RAGAssistant({
+    merchantId: 'your_merchant_id',
+    apiKey: 'pk_live_...',
+    
+    integration: {
+      addToCartCallback: (product) => {
+        // Use Pinia store
+        cartStore.addItem(product);
+      },
+      
+      checkoutCallback: (items) => {
+        router.push('/checkout');
+      }
+    }
+  });
+});
+&lt;/script&gt;</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 5: As a Vue Plugin</h2>
+        <p>Create a reusable Vue plugin for the RAG Assistant.</p>
+        
+        <div class="code-block">
+          <pre>// plugins/rag-assistant.js
+import RAGAssistant from '@rag-assistant/widget';
+
+export default {
+  install(app, options) {
+    const assistant = new RAGAssistant(options);
+    
+    // Make available globally
+    app.config.globalProperties.$ragAssistant = assistant;
+    
+    // Provide/inject pattern
+    app.provide('ragAssistant', assistant);
+  }
+};
+
+// main.js
+import { createApp } from 'vue';
+import App from './App.vue';
+import RAGAssistantPlugin from './plugins/rag-assistant';
+
+const app = createApp(App);
+
+app.use(RAGAssistantPlugin, {
+  merchantId: 'your_merchant_id',
+  apiKey: 'pk_live_...',
+  theme: {
+    primaryColor: '#42b883'
+  }
+});
+
+app.mount('#app');
+
+// Usage in components:
+&lt;script setup&gt;
+import { inject } from 'vue';
+
+const ragAssistant = inject('ragAssistant');
+
+const openChat = () => {
+  ragAssistant.open();
+};
+&lt;/script&gt;
+
+// Or with Options API:
+export default {
+  methods: {
+    openChat() {
+      this.$ragAssistant.open();
+    }
+  }
+};</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 6: Composable (Vue 3)</h2>
+        <p>Create a reusable composable for the RAG Assistant.</p>
+        
+        <div class="code-block">
+          <pre>// composables/useRAGAssistant.js
+import { onMounted, onBeforeUnmount, ref } from 'vue';
+import RAGAssistant from '@rag-assistant/widget';
+
+export function useRAGAssistant(config) {
+  const assistant = ref(null);
+  const isReady = ref(false);
+  
+  onMounted(() => {
+    assistant.value = new RAGAssistant(config);
+    isReady.value = true;
+  });
+  
+  onBeforeUnmount(() => {
+    assistant.value = null;
+    isReady.value = false;
+  });
+  
+  const open = () => {
+    if (assistant.value) {
+      assistant.value.open();
+    }
+  };
+  
+  const close = () => {
+    if (assistant.value) {
+      assistant.value.close();
+    }
+  };
+  
+  const sendMessage = (message) => {
+    if (assistant.value) {
+      assistant.value.sendMessage(message);
+    }
+  };
+  
+  return {
+    assistant,
+    isReady,
+    open,
+    close,
+    sendMessage
+  };
+}
+
+// Usage in component:
+&lt;script setup&gt;
+import { useRAGAssistant } from './composables/useRAGAssistant';
+import { useCartStore } from './stores/cart';
+
+const cartStore = useCartStore();
+
+const { open, sendMessage } = useRAGAssistant({
+  merchantId: 'your_merchant_id',
+  apiKey: 'pk_live_...',
+  integration: {
+    addToCartCallback: (product) => {
+      cartStore.addItem(product);
+    }
+  }
+});
+&lt;/script&gt;</pre>
+        </div>
+      </div>
+      
+      <div class="info-box">
+        <strong>💡 Pro Tips:</strong>
+        <ul style="margin-top: 10px; padding-left: 20px;">
+          <li>Use <code>onMounted</code> to initialize the widget after DOM is ready</li>
+          <li>Store the assistant instance in component data or ref</li>
+          <li>Integrate with Vuex or Pinia for state management</li>
+          <li>Create a plugin or composable for reusability</li>
+          <li>Use <code>onBeforeUnmount</code> for cleanup</li>
+          <li>Leverage Vue Router for navigation in callbacks</li>
+        </ul>
+      </div>
+      
+      <div class="section">
+        <h2>TypeScript Support</h2>
+        <p>The widget includes TypeScript definitions for Vue 3.</p>
+        
+        <div class="code-block">
+          <pre>&lt;script setup lang="ts"&gt;
+import { onMounted, ref } from 'vue';
+import RAGAssistant, { RAGConfig, Product } from '@rag-assistant/widget';
+
+const assistant = ref&lt;RAGAssistant | null&gt;(null);
+
+onMounted(() => {
+  const config: RAGConfig = {
+    merchantId: 'your_merchant_id',
+    apiKey: 'pk_live_...',
+    integration: {
+      addToCartCallback: (product: Product) => {
+        console.log('Add to cart:', product);
+      }
+    }
+  };
+  
+  assistant.value = new RAGAssistant(config);
+});
+&lt;/script&gt;</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { MindsDBService } from '../../services/MindsDBService';
 import { SemanticRetrievalService } from '../../services/SemanticRetrievalService';
 import { getCacheService } from '../../services/CacheService';
+import { ApiResponse } from '../../types';
+import { sendSuccess, sendError, getRequestId } from '../utils/responseFormatter';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -17,27 +19,24 @@ export class DocumentController {
 
   // Initialize RAG system for a merchant
   async initializeRAGSystem(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchantId } = req.params;
       const { openaiApiKey } = req.body;
 
       if (!merchantId) {
-        res.status(400).json({
-          error: 'merchantId is required'
-        });
+        sendError(res, 'merchantId is required', 400, requestId);
         return;
       }
 
       if (!openaiApiKey) {
-        res.status(400).json({
-          error: 'openaiApiKey is required for RAG system setup'
-        });
+        sendError(res, 'openaiApiKey is required for RAG system setup', 400, requestId);
         return;
       }
 
       await this.mindsdbService.setupRAGSystem(merchantId, openaiApiKey);
 
-      res.status(200).json({
+      sendSuccess(res, {
         message: 'RAG system initialized successfully',
         merchantId,
         components: {
@@ -45,26 +44,22 @@ export class DocumentController {
           agent: `rag_agent_${merchantId}`,
           status: 'ready'
         }
-      });
+      }, 200, requestId);
     } catch (error) {
       console.error('RAG system initialization error:', error);
-      res.status(500).json({
-        error: 'Failed to initialize RAG system',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to initialize RAG system', 500, requestId);
     }
   }
 
   // Ingest document from text content
   async ingestDocument(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchantId } = req.params;
       const { content, title, source, documentType = 'text' } = req.body;
 
       if (!merchantId || !content) {
-        res.status(400).json({
-          error: 'merchantId and content are required'
-        });
+        sendError(res, 'merchantId and content are required', 400, requestId);
         return;
       }
 
@@ -78,7 +73,7 @@ export class DocumentController {
         document_type: documentType
       });
 
-      res.status(200).json({
+      sendSuccess(res, {
         message: 'Document ingested successfully',
         documentId,
         merchantId,
@@ -88,26 +83,22 @@ export class DocumentController {
           documentType,
           createdAt: new Date().toISOString()
         }
-      });
+      }, 200, requestId);
     } catch (error) {
       console.error('Document ingestion error:', error);
-      res.status(500).json({
-        error: 'Failed to ingest document',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to ingest document', 500, requestId);
     }
   }
 
   // Ingest document from URL
   async ingestDocumentFromUrl(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchantId } = req.params;
       const { url, title, documentType = 'url' } = req.body;
 
       if (!merchantId || !url) {
-        res.status(400).json({
-          error: 'merchantId and url are required'
-        });
+        sendError(res, 'merchantId and url are required', 400, requestId);
         return;
       }
 
@@ -115,9 +106,7 @@ export class DocumentController {
       const content = await this.mindsdbService.extractDocumentContent(url);
       
       if (!content || content.trim().length === 0) {
-        res.status(400).json({
-          error: 'Could not extract content from the provided URL'
-        });
+        sendError(res, 'Could not extract content from the provided URL', 400, requestId);
         return;
       }
 
@@ -131,7 +120,7 @@ export class DocumentController {
         document_type: documentType
       });
 
-      res.status(200).json({
+      sendSuccess(res, {
         message: 'Document ingested successfully from URL',
         documentId,
         merchantId,
@@ -141,18 +130,16 @@ export class DocumentController {
           documentType,
           createdAt: new Date().toISOString()
         }
-      });
+      }, 200, requestId);
     } catch (error) {
       console.error('URL document ingestion error:', error);
-      res.status(500).json({
-        error: 'Failed to ingest document from URL',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to ingest document from URL', 500, requestId);
     }
   }
 
   // Search documents using semantic search
   async searchDocuments(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { 
         merchantId,
@@ -164,9 +151,7 @@ export class DocumentController {
       } = req.body;
 
       if (!merchantId || !query) {
-        res.status(400).json({
-          error: 'merchantId and query are required'
-        });
+        sendError(res, 'merchantId and query are required', 400, requestId);
         return;
       }
 
@@ -179,7 +164,7 @@ export class DocumentController {
         filters
       });
 
-      res.status(200).json({
+      sendSuccess(res, {
         results,
         totalFound: results.length,
         searchParams: {
@@ -189,87 +174,72 @@ export class DocumentController {
           useHybridSearch,
           filters
         }
-      });
+      }, 200, requestId);
     } catch (error) {
       console.error('Document search error:', error);
-      res.status(500).json({
-        error: 'Failed to search documents',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to search documents', 500, requestId);
     }
   }
 
   // Ask a question using the RAG agent
   async askQuestion(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchantId } = req.params;
       const { question } = req.body;
 
       if (!merchantId || !question) {
-        res.status(400).json({
-          error: 'merchantId and question are required'
-        });
+        sendError(res, 'merchantId and question are required', 400, requestId);
         return;
       }
 
       const answer = await this.mindsdbService.askQuestion(merchantId, question);
 
-      res.status(200).json({
+      sendSuccess(res, {
         question,
         answer,
-        merchantId,
-        timestamp: new Date().toISOString()
-      });
+        merchantId
+      }, 200, requestId);
     } catch (error) {
       console.error('Question answering error:', error);
-      res.status(500).json({
-        error: 'Failed to answer question',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to answer question', 500, requestId);
     }
   }
 
   // Get document by ID
   async getDocument(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchantId, documentId } = req.params;
 
       if (!merchantId || !documentId) {
-        res.status(400).json({
-          error: 'merchantId and documentId are required'
-        });
+        sendError(res, 'merchantId and documentId are required', 400, requestId);
         return;
       }
 
       const document = await this.semanticRetrievalService.getDocumentById(merchantId, documentId);
 
       if (!document) {
-        res.status(404).json({
-          error: 'Document not found'
-        });
+        sendError(res, 'Document not found', 404, requestId);
         return;
       }
 
-      res.status(200).json(document);
+      sendSuccess(res, document, 200, requestId);
     } catch (error) {
       console.error('Document retrieval error:', error);
-      res.status(500).json({
-        error: 'Failed to retrieve document',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to retrieve document', 500, requestId);
     }
   }
 
   // Find similar documents
   async findSimilarDocuments(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchantId, documentId } = req.params;
       const { limit = 5 } = req.query;
 
       if (!merchantId || !documentId) {
-        res.status(400).json({
-          error: 'merchantId and documentId are required'
-        });
+        sendError(res, 'merchantId and documentId are required', 400, requestId);
         return;
       }
 
@@ -279,92 +249,77 @@ export class DocumentController {
         parseInt(limit as string)
       );
 
-      res.status(200).json({
+      sendSuccess(res, {
         referenceDocumentId: documentId,
         similarDocuments,
         totalFound: similarDocuments.length
-      });
+      }, 200, requestId);
     } catch (error) {
       console.error('Similar documents search error:', error);
-      res.status(500).json({
-        error: 'Failed to find similar documents',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to find similar documents', 500, requestId);
     }
   }
 
   // Delete document
   async deleteDocument(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchantId, documentId } = req.params;
 
       if (!merchantId || !documentId) {
-        res.status(400).json({
-          error: 'merchantId and documentId are required'
-        });
+        sendError(res, 'merchantId and documentId are required', 400, requestId);
         return;
       }
 
       const success = await this.semanticRetrievalService.deleteDocument(merchantId, documentId);
 
       if (!success) {
-        res.status(404).json({
-          error: 'Document not found or could not be deleted'
-        });
+        sendError(res, 'Document not found or could not be deleted', 404, requestId);
         return;
       }
 
-      res.status(200).json({
+      sendSuccess(res, {
         message: 'Document deleted successfully',
         documentId,
         merchantId
-      });
+      }, 200, requestId);
     } catch (error) {
       console.error('Document deletion error:', error);
-      res.status(500).json({
-        error: 'Failed to delete document',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to delete document', 500, requestId);
     }
   }
 
   // Get document statistics
   async getDocumentStats(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchantId } = req.query;
 
       if (!merchantId || typeof merchantId !== 'string') {
-        res.status(400).json({
-          error: 'merchantId is required'
-        });
+        sendError(res, 'merchantId is required', 400, requestId);
         return;
       }
 
       const stats = await this.semanticRetrievalService.getDocumentStats(merchantId);
 
-      res.status(200).json({
+      sendSuccess(res, {
         merchantId,
-        stats,
-        timestamp: new Date().toISOString()
-      });
+        stats
+      }, 200, requestId);
     } catch (error) {
       console.error('Document stats error:', error);
-      res.status(500).json({
-        error: 'Failed to get document statistics',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to get document statistics', 500, requestId);
     }
   }
 
   // Get RAG system status
   async getRAGSystemStatus(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchantId } = req.params;
 
       if (!merchantId) {
-        res.status(400).json({
-          error: 'merchantId is required'
-        });
+        sendError(res, 'merchantId is required', 400, requestId);
         return;
       }
 
@@ -378,7 +333,7 @@ export class DocumentController {
       const merchantAgent = agents.find(agent => agent.name === `rag_agent_${merchantId}`);
       const merchantJobs = jobs.filter(job => job.name.includes(merchantId));
 
-      res.status(200).json({
+      sendSuccess(res, {
         merchantId,
         status: {
           knowledgeBase: merchantKB ? 'active' : 'not_found',
@@ -390,49 +345,56 @@ export class DocumentController {
           knowledgeBase: merchantKB,
           agent: merchantAgent,
           jobs: merchantJobs
-        },
-        timestamp: new Date().toISOString()
-      });
+        }
+      }, 200, requestId);
     } catch (error) {
       console.error('RAG system status error:', error);
-      res.status(500).json({
-        error: 'Failed to get RAG system status',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to get RAG system status', 500, requestId);
     }
   }
 
   // Health check
   async healthCheck(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const health = await this.mindsdbService.healthCheck();
       
-      res.status(health.status === 'healthy' ? 200 : 503).json({
-        service: 'DocumentController',
-        mindsdb: health,
-        timestamp: new Date().toISOString()
-      });
+      const statusCode = health.status === 'healthy' ? 200 : 503;
+      const response: ApiResponse = {
+        success: health.status === 'healthy',
+        data: {
+          service: 'DocumentController',
+          mindsdb: health
+        },
+        timestamp: new Date().toISOString(),
+        requestId
+      };
+      res.status(statusCode).json(response);
     } catch (error) {
       console.error('Health check error:', error);
-      res.status(503).json({
-        service: 'DocumentController',
-        status: 'unhealthy',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString()
-      });
+      const response: ApiResponse = {
+        success: false,
+        error: error instanceof Error ? error.message : 'Health check failed',
+        data: {
+          service: 'DocumentController',
+          status: 'unhealthy'
+        },
+        timestamp: new Date().toISOString(),
+        requestId
+      };
+      res.status(503).json(response);
     }
   }
   /**
    * Create a new document
    */
   async createDocument(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchantId, content, title, source, document_type } = req.body;
 
       if (!merchantId || !content) {
-        res.status(400).json({
-          error: 'merchantId and content are required'
-        });
+        sendError(res, 'merchantId and content are required', 400, requestId);
         return;
       }
 
@@ -446,19 +408,13 @@ export class DocumentController {
         document_type: document_type || 'text'
       });
 
-      res.json({
-        success: true,
-        data: {
-          documentId,
-          message: 'Document created successfully'
-        }
-      });
+      sendSuccess(res, {
+        documentId,
+        message: 'Document created successfully'
+      }, 201, requestId);
     } catch (error) {
       console.error('Document creation error:', error);
-      res.status(500).json({
-        error: 'Failed to create document',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to create document', 500, requestId);
     }
   }
 
@@ -466,14 +422,13 @@ export class DocumentController {
    * Update an existing document
    */
   async updateDocument(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchantId, documentId } = req.params;
       const { content, title, source, document_type } = req.body;
 
       if (!merchantId || !documentId) {
-        res.status(400).json({
-          error: 'merchantId and documentId are required'
-        });
+        sendError(res, 'merchantId and documentId are required', 400, requestId);
         return;
       }
 
@@ -486,19 +441,13 @@ export class DocumentController {
         document_type: document_type || 'text'
       });
 
-      res.json({
-        success: true,
-        data: {
-          documentId,
-          message: 'Document updated successfully'
-        }
-      });
+      sendSuccess(res, {
+        documentId,
+        message: 'Document updated successfully'
+      }, 200, requestId);
     } catch (error) {
       console.error('Document update error:', error);
-      res.status(500).json({
-        error: 'Failed to update document',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to update document', 500, requestId);
     }
   }
 
@@ -506,14 +455,13 @@ export class DocumentController {
    * Bulk upload documents
    */
   async bulkUploadDocuments(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchantId } = req.params;
       const { documents } = req.body;
 
       if (!merchantId || !Array.isArray(documents)) {
-        res.status(400).json({
-          error: 'merchantId and documents array are required'
-        });
+        sendError(res, 'merchantId and documents array are required', 400, requestId);
         return;
       }
 
@@ -543,19 +491,13 @@ export class DocumentController {
         }
       }
 
-      res.json({
-        success: true,
-        data: {
-          processed: results.length,
-          results
-        }
-      });
+      sendSuccess(res, {
+        processed: results.length,
+        results
+      }, 200, requestId);
     } catch (error) {
       console.error('Bulk upload error:', error);
-      res.status(500).json({
-        error: 'Failed to bulk upload documents',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to bulk upload documents', 500, requestId);
     }
   }}
 

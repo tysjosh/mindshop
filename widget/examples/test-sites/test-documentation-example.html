@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation Example Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      padding: 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .test-section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #007bff;
+    }
+    .test-section h3 {
+      margin-top: 0;
+      color: #007bff;
+    }
+    .status {
+      padding: 12px 20px;
+      border-radius: 6px;
+      margin: 10px 0;
+      font-weight: 500;
+    }
+    .status.loading {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .code-block {
+      background: #282c34;
+      color: #abb2bf;
+      padding: 20px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .test-results {
+      margin-top: 20px;
+    }
+    .test-item {
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .test-item.pass {
+      background: #d4edda;
+      color: #155724;
+    }
+    .test-item.fail {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .test-item .icon {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📚 Documentation Example Test</h1>
+    <p class="subtitle">Testing the exact widget initialization code from the developer portal documentation</p>
+
+    <div class="test-section">
+      <h3>Widget Initialization Status</h3>
+      <div id="init-status" class="status loading">⏳ Initializing widget...</div>
+    </div>
+
+    <div class="test-section">
+      <h3>Documentation Code Example</h3>
+      <p>This is the exact code from the Quick Start guide:</p>
+      <div class="code-block">
+&lt;!-- Load the RAG Assistant Widget --&gt;
+&lt;script src="https://cdn.rag-assistant.com/v1/widget.js"&gt;&lt;/script&gt;
+
+&lt;!-- Initialize the widget --&gt;
+&lt;script&gt;
+  const assistant = new RAGAssistant({
+    merchantId: 'your_merchant_id',
+    apiKey: 'pk_live_YOUR_API_KEY',
+    apiBaseUrl: 'https://api.rag-assistant.com',
+    theme: {
+      primaryColor: '#007bff',
+      position: 'bottom-right'
+    },
+    behavior: {
+      autoOpen: false,
+      greeting: 'Hi! How can I help you today?'
+    },
+    integration: {
+      addToCartCallback: (product) => {
+        console.log('Add to cart:', product);
+      }
+    }
+  });
+&lt;/script&gt;
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h3>Test Results</h3>
+      <div id="test-results" class="test-results">
+        <div class="status loading">Running tests...</div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h3>Interactive Test</h3>
+      <p>Click the button below to open the widget and test it manually:</p>
+      <button id="open-widget" disabled>Open Widget</button>
+      <button id="send-test-message" disabled style="margin-left: 10px;">Send Test Message</button>
+    </div>
+  </div>
+
+  <!-- Mock fetch before loading widget -->
+  <script>
+    // Store original fetch
+    const originalFetch = window.fetch;
+    
+    // Mock fetch for API calls
+    window.fetch = function(url, options) {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      
+      console.log('[Mock API] Request:', urlStr, options?.method || 'GET');
+      
+      // Mock session creation
+      if (urlStr.includes('/sessions') && options?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({
+            success: true,
+            data: {
+              sessionId: 'test_session_' + Date.now(),
+              merchantId: 'test_merchant',
+              userId: 'test_user',
+              createdAt: new Date().toISOString()
+            },
+            timestamp: new Date().toISOString(),
+            requestId: 'req_' + Math.random().toString(36).substr(2, 9)
+          })
+        });
+      }
+      
+      // Mock session history
+      if (urlStr.includes('/sessions/') && urlStr.includes('/history')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({
+            success: true,
+            data: [],
+            timestamp: new Date().toISOString(),
+            requestId: 'req_' + Math.random().toString(36).substr(2, 9)
+          })
+        });
+      }
+      
+      // Mock chat endpoint
+      if (urlStr.includes('/chat') && options?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({
+            success: true,
+            data: {
+              answer: 'This is a test response from the mocked API. The widget is working correctly!',
+              recommendations: [
+                {
+                  id: 'prod_1',
+                  title: 'Test Product 1',
+                  price: 99.99,
+                  imageUrl: 'https://via.placeholder.com/150'
+                },
+                {
+                  id: 'prod_2',
+                  title: 'Test Product 2',
+                  price: 149.99,
+                  imageUrl: 'https://via.placeholder.com/150'
+                }
+              ],
+              executionTime: 245
+            },
+            timestamp: new Date().toISOString(),
+            requestId: 'req_' + Math.random().toString(36).substr(2, 9)
+          })
+        });
+      }
+      
+      // Fall back to original fetch for other requests
+      return originalFetch(url, options);
+    };
+  </script>
+
+  <!-- RAG Assistant Widget - loaded from webpack dev server -->
+  <script src="/main.js"></script>
+  
+  <!-- Initialize widget with documentation example code -->
+  <script>
+    const tests = [];
+    
+    function addTest(name, passed, details = '') {
+      tests.push({ name, passed, details });
+    }
+    
+    function updateTestResults() {
+      const resultsDiv = document.getElementById('test-results');
+      resultsDiv.innerHTML = tests.map(test => `
+        <div class="test-item ${test.passed ? 'pass' : 'fail'}">
+          <span class="icon">${test.passed ? '✓' : '✗'}</span>
+          <span>${test.name}</span>
+          ${test.details ? `<span style="margin-left: auto; font-size: 12px; opacity: 0.8;">${test.details}</span>` : ''}
+        </div>
+      `).join('');
+    }
+    
+    try {
+      // Test 1: RAGAssistant is available globally
+      addTest('RAGAssistant is available on window', typeof window.RAGAssistant !== 'undefined');
+      
+      // Test 2: Can instantiate with documentation example
+      const assistant = new RAGAssistant({
+        merchantId: 'your_merchant_id',
+        apiKey: 'pk_live_YOUR_API_KEY',
+        apiBaseUrl: 'http://localhost:3000',
+        theme: {
+          primaryColor: '#007bff',
+          position: 'bottom-right'
+        },
+        behavior: {
+          autoOpen: false,
+          greeting: 'Hi! How can I help you today?'
+        },
+        integration: {
+          addToCartCallback: (product) => {
+            console.log('Add to cart:', product);
+            addTest('addToCartCallback was called', true, `Product: ${product.title || product.id}`);
+            updateTestResults();
+          }
+        }
+      });
+      
+      addTest('Widget instantiated successfully', assistant !== null);
+      
+      // Store instance globally for testing
+      window.assistantInstance = assistant;
+      
+      // Test 3: Widget creates DOM elements
+      setTimeout(() => {
+        const toggle = document.getElementById('rag-widget-toggle');
+        const container = document.getElementById('rag-widget-container');
+        
+        addTest('Widget toggle button created', toggle !== null);
+        addTest('Widget container created', container !== null);
+        
+        // Test 4: Widget has expected methods
+        addTest('Widget has open() method', typeof assistant.open === 'function');
+        addTest('Widget has close() method', typeof assistant.close === 'function');
+        addTest('Widget has sendMessage() method', typeof assistant.sendMessage === 'function');
+        addTest('Widget has getSessionId() method', typeof assistant.getSessionId === 'function');
+        
+        // Test 5: Configuration applied correctly
+        const sessionId = assistant.getSessionId();
+        addTest('Session ID is available', sessionId !== null && sessionId !== undefined, sessionId);
+        
+        updateTestResults();
+        
+        // Update status
+        const statusDiv = document.getElementById('init-status');
+        const allPassed = tests.every(t => t.passed);
+        
+        if (allPassed) {
+          statusDiv.className = 'status success';
+          statusDiv.textContent = '✓ All tests passed! Widget is working correctly.';
+        } else {
+          statusDiv.className = 'status error';
+          statusDiv.textContent = '✗ Some tests failed. Check results below.';
+        }
+        
+        // Enable interactive buttons
+        document.getElementById('open-widget').disabled = false;
+        document.getElementById('send-test-message').disabled = false;
+        
+      }, 2000);
+      
+      // Interactive test buttons
+      document.getElementById('open-widget').addEventListener('click', () => {
+        assistant.open();
+        addTest('Widget opened via open() method', true);
+        updateTestResults();
+      });
+      
+      document.getElementById('send-test-message').addEventListener('click', async () => {
+        try {
+          assistant.open();
+          await assistant.sendMessage('Show me wireless headphones');
+          addTest('Test message sent successfully', true);
+          updateTestResults();
+        } catch (error) {
+          addTest('Test message sent successfully', false, error.message);
+          updateTestResults();
+        }
+      });
+      
+    } catch (error) {
+      console.error('Widget initialization error:', error);
+      
+      const statusDiv = document.getElementById('init-status');
+      statusDiv.className = 'status error';
+      statusDiv.textContent = '✗ Error: ' + error.message;
+      
+      addTest('Widget initialization', false, error.message);
+      updateTestResults();
+    }
+  </script>
+</body>
+</html>

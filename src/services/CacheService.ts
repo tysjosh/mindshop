@@ -459,6 +459,61 @@ export class CacheService {
       console.error("Cache delete multiple error:", error);
     }
   }
+
+  /**
+   * Increment a numeric value in Redis atomically
+   * Returns the new value after increment
+   */
+  async incrby(key: string, increment: number = 1): Promise<number> {
+    try {
+      const connected = await this.ensureConnection();
+      if (!connected) {
+        console.warn("Redis not available, skipping increment");
+        return 0;
+      }
+
+      return await this.redis.incrBy(key, increment);
+    } catch (error) {
+      console.error("Cache incrby error:", error);
+      return 0;
+    }
+  }
+
+  /**
+   * Set expiration time on a key
+   */
+  async expire(key: string, seconds: number): Promise<boolean> {
+    try {
+      const connected = await this.ensureConnection();
+      if (!connected) {
+        console.warn("Redis not available, skipping expire");
+        return false;
+      }
+
+      return await this.redis.expire(key, seconds);
+    } catch (error) {
+      console.error("Cache expire error:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Get a raw numeric value from Redis (without JSON parsing)
+   */
+  async getRaw(key: string): Promise<string | null> {
+    try {
+      const connected = await this.ensureConnection();
+      if (!connected) {
+        console.warn("Redis not available, skipping get raw");
+        return null;
+      }
+
+      return await this.redis.get(key);
+    } catch (error) {
+      console.error("Cache get raw error:", error);
+      return null;
+    }
+  }
 }
 
 // Export singleton instance

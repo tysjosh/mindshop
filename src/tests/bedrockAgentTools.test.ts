@@ -63,7 +63,7 @@ describe('Bedrock Agent Tool Integrations', () => {
       const context = {
         merchantId: 'test-merchant',
         userId: 'test-user',
-        sessionId: 'test-session',
+        sessionId: '00000000-0000-0000-0000-000000000001', // Valid UUID format
         requestId: 'test-request',
         timestamp: new Date(),
       };
@@ -199,10 +199,15 @@ describe('Bedrock Agent Tool Integrations', () => {
       };
 
       // Test with missing required parameters
-      const result = await toolRegistry.executeTool('semantic_retrieval', {}, context);
-      
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Missing required field');
+      try {
+        const result = await toolRegistry.executeTool('semantic_retrieval', {}, context);
+        
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Missing required field');
+      } catch (error: any) {
+        // Expected - validation should throw error for missing required fields
+        expect(error.message).toContain('Missing required field');
+      }
     });
 
     it('should handle tool execution failures', async () => {
@@ -229,7 +234,7 @@ describe('Bedrock Agent Tool Integrations', () => {
       const context = {
         merchantId: 'test-merchant-cost',
         userId: 'test-user',
-        sessionId: 'test-session',
+        sessionId: '00000000-0000-0000-0000-000000000002', // Valid UUID format
         requestId: 'test-request',
         timestamp: new Date(),
       };

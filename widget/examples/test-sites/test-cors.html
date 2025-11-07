@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Widget CORS Test - External Domain Simulation</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      padding: 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #333;
+      margin-top: 0;
+      font-size: 28px;
+    }
+    .info {
+      background: #f0f7ff;
+      border-left: 4px solid #0066cc;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .test-section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+    .test-section h2 {
+      margin-top: 0;
+      font-size: 20px;
+      color: #555;
+    }
+    .status {
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin: 10px 0;
+      font-weight: 500;
+    }
+    .status.pending {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .test-results {
+      margin-top: 20px;
+    }
+    .test-item {
+      padding: 12px;
+      margin: 8px 0;
+      background: white;
+      border-radius: 6px;
+      border-left: 4px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .test-item.pass {
+      border-left-color: #28a745;
+    }
+    .test-item.fail {
+      border-left-color: #dc3545;
+    }
+    .test-item .icon {
+      font-size: 20px;
+      margin-right: 10px;
+    }
+    .test-item .details {
+      flex: 1;
+    }
+    .test-item .result {
+      font-weight: bold;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .test-item.pass .result {
+      background: #d4edda;
+      color: #155724;
+    }
+    .test-item.fail .result {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    .config-section {
+      margin: 20px 0;
+    }
+    .config-section label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: 500;
+      color: #555;
+    }
+    .config-section input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .summary {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .summary h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .summary .stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 15px;
+    }
+    .summary .stat {
+      text-align: center;
+    }
+    .summary .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .summary .stat-label {
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Widget CORS Integration Test</h1>
+    
+    <div class="info">
+      <strong>Purpose:</strong> This page simulates loading the RAG Assistant widget from an external merchant domain
+      to verify that CORS (Cross-Origin Resource Sharing) is properly configured.
+    </div>
+
+    <div class="config-section">
+      <h2>Configuration</h2>
+      <label for="apiUrl">API Base URL:</label>
+      <input type="text" id="apiUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+      
+      <label for="merchantId">Merchant ID:</label>
+      <input type="text" id="merchantId" value="test_merchant_cors" placeholder="test_merchant_cors">
+      
+      <label for="apiKey">API Key:</label>
+      <input type="text" id="apiKey" value="test_key" placeholder="test_key">
+    </div>
+
+    <div class="test-section">
+      <h2>Test Status</h2>
+      <div id="mainStatus" class="status pending">
+        Ready to test. Click "Run CORS Tests" to begin.
+      </div>
+      <button id="runTests" onclick="runAllTests()">Run CORS Tests</button>
+    </div>
+
+    <div class="test-section">
+      <h2>Test Results</h2>
+      <div id="testResults" class="test-results">
+        <p style="color: #999;">No tests run yet.</p>
+      </div>
+    </div>
+
+    <div id="summary" class="summary" style="display: none;">
+      <h3>Test Summary</h3>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" style="color: #28a745;" id="passedCount">0</div>
+          <div class="stat-label">Passed</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" style="color: #dc3545;" id="failedCount">0</div>
+          <div class="stat-label">Failed</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" style="color: #007bff;" id="totalCount">0</div>
+          <div class="stat-label">Total</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let testResults = [];
+    let sessionId = null;
+
+    function getConfig() {
+      return {
+        apiUrl: document.getElementById('apiUrl').value,
+        merchantId: document.getElementById('merchantId').value,
+        apiKey: document.getElementById('apiKey').value,
+        userId: 'test_user_' + Date.now()
+      };
+    }
+
+    function updateMainStatus(message, type) {
+      const statusEl = document.getElementById('mainStatus');
+      statusEl.textContent = message;
+      statusEl.className = 'status ' + type;
+    }
+
+    function addTestResult(name, passed, details) {
+      testResults.push({ name, passed, details });
+      renderTestResults();
+    }
+
+    function renderTestResults() {
+      const container = document.getElementById('testResults');
+      
+      if (testResults.length === 0) {
+        container.innerHTML = '<p style="color: #999;">No tests run yet.</p>';
+        return;
+      }
+
+      let html = '';
+      testResults.forEach(test => {
+        const icon = test.passed ? '✓' : '✗';
+        const className = test.passed ? 'pass' : 'fail';
+        const resultText = test.passed ? 'PASS' : 'FAIL';
+        
+        html += `
+          <div class="test-item ${className}">
+            <span class="icon">${icon}</span>
+            <div class="details">
+              <strong>${test.name}</strong>
+              ${test.details ? '<br><small style="color: #666;">' + test.details + '</small>' : ''}
+            </div>
+            <span class="result">${resultText}</span>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      updateSummary();
+    }
+
+    function updateSummary() {
+      const passed = testResults.filter(t => t.passed).length;
+      const failed = testResults.filter(t => !t.passed).length;
+      const total = testResults.length;
+
+      document.getElementById('passedCount').textContent = passed;
+      document.getElementById('failedCount').textContent = failed;
+      document.getElementById('totalCount').textContent = total;
+      document.getElementById('summary').style.display = 'block';
+    }
+
+    async function runAllTests() {
+      const button = document.getElementById('runTests');
+      button.disabled = true;
+      button.textContent = 'Running tests...';
+      
+      testResults = [];
+      sessionId = null;
+      renderTestResults();
+      document.getElementById('summary').style.display = 'none';
+
+      updateMainStatus('Running CORS tests...', 'pending');
+
+      const config = getConfig();
+
+      try {
+        // Test 1: Preflight OPTIONS request
+        await testPreflight(config);
+
+        // Test 2: Create session
+        await testCreateSession(config);
+
+        // Test 3: Send chat message (if session created)
+        if (sessionId) {
+          await testSendMessage(config);
+          await testGetHistory(config);
+        }
+
+        // Test 4: Document search
+        await testDocumentSearch(config);
+
+        // Test 5: Check CORS headers
+        await testCorsHeaders(config);
+
+        // All tests complete
+        const allPassed = testResults.every(t => t.passed);
+        if (allPassed) {
+          updateMainStatus('✓ All tests passed! Widget should work on external domains.', 'success');
+        } else {
+          updateMainStatus('✗ Some tests failed. Check results below.', 'error');
+        }
+
+      } catch (error) {
+        console.error('Test error:', error);
+        updateMainStatus('✗ Test execution failed: ' + error.message, 'error');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Run CORS Tests';
+      }
+    }
+
+    async function testPreflight(config) {
+      try {
+        const response = await fetch(`${config.apiUrl}/api/chat/sessions`, {
+          method: 'OPTIONS',
+          headers: {
+            'Origin': window.location.origin,
+            'Access-Control-Request-Method': 'POST',
+            'Access-Control-Request-Headers': 'Content-Type,Authorization,X-Merchant-ID'
+          }
+        });
+
+        const passed = response.ok;
+        addTestResult(
+          'Preflight OPTIONS Request',
+          passed,
+          passed ? `Status: ${response.status}` : `Failed with status ${response.status}`
+        );
+      } catch (error) {
+        addTestResult('Preflight OPTIONS Request', false, 'Error: ' + error.message);
+      }
+    }
+
+    async function testCreateSession(config) {
+      try {
+        const response = await fetch(`${config.apiUrl}/api/chat/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${config.apiKey}`,
+            'X-Merchant-ID': config.merchantId
+          },
+          body: JSON.stringify({
+            merchantId: config.merchantId,
+            userId: config.userId
+          })
+        });
+
+        const data = await response.json();
+        sessionId = data.data?.sessionId || data.sessionId;
+        
+        const passed = response.ok && sessionId;
+        addTestResult(
+          'Create Session from External Domain',
+          passed,
+          passed ? `Session ID: ${sessionId}` : `Failed: ${data.error || 'No session ID returned'}`
+        );
+      } catch (error) {
+        addTestResult('Create Session from External Domain', false, 'Error: ' + error.message);
+      }
+    }
+
+    async function testSendMessage(config) {
+      try {
+        const response = await fetch(`${config.apiUrl}/api/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${config.apiKey}`,
+            'X-Merchant-ID': config.merchantId
+          },
+          body: JSON.stringify({
+            query: 'Test message from external domain',
+            sessionId: sessionId,
+            merchantId: config.merchantId,
+            userId: config.userId
+          })
+        });
+
+        const data = await response.json();
+        const passed = response.ok;
+        
+        addTestResult(
+          'Send Chat Message from External Domain',
+          passed,
+          passed ? 'Message sent successfully' : `Failed: ${data.error || response.statusText}`
+        );
+      } catch (error) {
+        addTestResult('Send Chat Message from External Domain', false, 'Error: ' + error.message);
+      }
+    }
+
+    async function testGetHistory(config) {
+      try {
+        const response = await fetch(
+          `${config.apiUrl}/api/chat/sessions/${sessionId}/history?merchantId=${config.merchantId}`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${config.apiKey}`,
+              'X-Merchant-ID': config.merchantId
+            }
+          }
+        );
+
+        const passed = response.ok;
+        addTestResult(
+          'Get Session History from External Domain',
+          passed,
+          passed ? 'History fetched successfully' : `Failed with status ${response.status}`
+        );
+      } catch (error) {
+        addTestResult('Get Session History from External Domain', false, 'Error: ' + error.message);
+      }
+    }
+
+    async function testDocumentSearch(config) {
+      try {
+        const response = await fetch(
+          `${config.apiUrl}/api/documents/search?merchantId=${config.merchantId}&limit=10`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${config.apiKey}`,
+              'X-Merchant-ID': config.merchantId
+            }
+          }
+        );
+
+        // 200 or 404 are both acceptable (404 means no documents, but CORS works)
+        const passed = response.ok || response.status === 404;
+        addTestResult(
+          'Document Search from External Domain',
+          passed,
+          passed ? `Status: ${response.status}` : `Failed with status ${response.status}`
+        );
+      } catch (error) {
+        addTestResult('Document Search from External Domain', false, 'Error: ' + error.message);
+      }
+    }
+
+    async function testCorsHeaders(config) {
+      try {
+        const response = await fetch(`${config.apiUrl}/api/chat/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${config.apiKey}`,
+            'X-Merchant-ID': config.merchantId
+          },
+          body: JSON.stringify({
+            merchantId: config.merchantId,
+            userId: config.userId + '_cors'
+          })
+        });
+
+        const corsOrigin = response.headers.get('Access-Control-Allow-Origin');
+        const corsCredentials = response.headers.get('Access-Control-Allow-Credentials');
+        
+        const passed = !!corsOrigin;
+        addTestResult(
+          'CORS Headers Present',
+          passed,
+          passed ? `Origin: ${corsOrigin}, Credentials: ${corsCredentials}` : 'No CORS headers found'
+        );
+      } catch (error) {
+        addTestResult('CORS Headers Present', false, 'Error: ' + error.message);
+      }
+    }
+
+    // Log page origin for debugging
+    console.log('Test page origin:', window.location.origin);
+    console.log('This simulates a merchant website loading the widget from a different domain');
+  </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+{
+  "name": "@rag-assistant/widget",
+  "version": "1.0.0",
+  "description": "Embeddable RAG Assistant chat widget for merchant websites",
+  "main": "dist/widget.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "npm run clean && webpack --mode production && npm run copy-embed",
+    "build:dev": "webpack --mode development",
+    "dev": "webpack --mode development --watch",
+    "serve": "webpack serve --mode development",
+    "test": "jest",
+    "test:browser": "playwright test",
+    "test:browser:ui": "playwright test --ui",
+    "test:browser:report": "playwright show-report test-results/browser-compat",
+    "test:browser:chromium": "playwright test --project=chromium",
+    "test:browser:firefox": "playwright test --project=firefox",
+    "test:browser:webkit": "playwright test --project=webkit",
+    "test:browser:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist",
+    "copy-embed": "cp embed.js dist/embed.js",
+    "prebuild": "npm run clean",
+    "deploy:dev": "./deploy-cdn.sh development",
+    "deploy:staging": "./deploy-cdn.sh staging",
+    "deploy:prod": "./deploy-cdn.sh production",
+    "deploy": "npm run deploy:dev"
+  },
+  "keywords": [
+    "rag",
+    "assistant",
+    "chat",
+    "widget",
+    "ecommerce"
+  ],
+  "author": "RAG Assistant",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/jest": "30.0.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "ajv": "8.17.1",
+    "css-loader": "^6.8.1",
+    "eslint": "^8.0.0",
+    "identity-obj-proxy": "3.0.0",
+    "jest": "^29.0.0",
+    "jest-environment-jsdom": "29.7.0",
+    "style-loader": "^3.3.3",
+    "ts-jest": "^29.0.0",
+    "ts-loader": "^9.4.4",
+    "typescript": "^5.0.0",
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "4.15.2"
+  },
+  "dependencies": {
+    "axios": "^1.5.0"
+  }
+}

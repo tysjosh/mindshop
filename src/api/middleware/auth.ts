@@ -1,6 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
-import { ApiResponse } from '../../types';
+import { ApiResponse, Permission, hasAllPermissions } from '../../types';
+import { getApiKeyService } from '../../services/ApiKeyService';
+import {
+  AuthErrorCode,
+  createAuthErrorResponse,
+  getHttpStatusForError,
+  parseJwtVerificationError,
+} from './authErrors';
+import { getAuthSecurityLogger } from './authSecurityLogger';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -11,6 +19,12 @@ export interface AuthenticatedRequest extends Request {
     groups?: string[];
   };
   cognitoToken?: any;
+  apiKey?: {
+    keyId: string;
+    merchantId: string;
+    permissions: string[];
+  };
+  authMethod?: 'jwt' | 'apikey';
 }
 
 interface AuthConfig {
@@ -55,16 +69,26 @@ export function createAuthMiddleware(config: AuthConfig) {
     // Note: With route-level auth, path-based skipping is not needed
     // Public routes (health checks, bedrock-agent) simply don't apply this middleware
     
+    const securityLogger = getAuthSecurityLogger();
+    const requestId = req.headers['x-request-id'] as string || `req-${Date.now()}`;
+    
+    // Check rate limiting first
+    const clientIp = getClientIp(req);
+    if (securityLogger.isRateLimitExceeded(clientIp)) {
+      await securityLogger.logRateLimitExceeded(req);
+      const response = createAuthErrorResponse(
+        AuthErrorCode.RATE_LIMIT_EXCEEDED,
+        requestId
+      );
+      return res.status(getHttpStatusForError(AuthErrorCode.RATE_LIMIT_EXCEEDED)).json(response);
+    }
+    
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      const response: ApiResponse = {
-        success: false,
-        error: 'Missing or invalid authorization header',
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || 'unknown',
-      };
-      return res.status(401).json(response);
+      await securityLogger.logAuthFailure(req, AuthErrorCode.AUTH_MISSING);
+      const response = createAuthErrorResponse(AuthErrorCode.AUTH_MISSING, requestId);
+      return res.status(getHttpStatusForError(AuthErrorCode.AUTH_MISSING)).json(response);
     }
 
     const token = authHeader.substring(7);
@@ -82,7 +106,7 @@ export function createAuthMiddleware(config: AuthConfig) {
           payload = await idTokenVerifier.verify(token, { clientId: config.clientId || null });
           tokenUse = 'id';
         } catch (idError) {
-          throw new Error('Invalid token: failed both access and ID token verification');
+          throw idError; // Use the ID token error for better error messages
         }
       }
 
@@ -97,30 +121,52 @@ export function createAuthMiddleware(config: AuthConfig) {
 
       // Validate required fields
       if (!user.userId) {
-        throw new Error('Token missing required user identifier');
+        const errorCode = AuthErrorCode.TOKEN_MISSING_CLAIMS;
+        await securityLogger.logAuthFailure(req, errorCode, {
+          missingClaim: 'userId',
+          tokenUse,
+        });
+        const response = createAuthErrorResponse(errorCode, requestId, {
+          missingClaim: 'userId',
+        });
+        return res.status(getHttpStatusForError(errorCode)).json(response);
       }
 
       if (!user.merchantId) {
-        throw new Error('Token missing required merchant identifier');
+        const errorCode = AuthErrorCode.MERCHANT_ID_MISSING;
+        await securityLogger.logAuthFailure(req, errorCode, {
+          userId: user.userId,
+          tokenUse,
+        });
+        const response = createAuthErrorResponse(errorCode, requestId);
+        return res.status(getHttpStatusForError(errorCode)).json(response);
       }
 
       // Attach user info to request
       req.user = user;
       req.cognitoToken = payload;
+      req.authMethod = 'jwt';
+
+      // Log successful authentication
+      await securityLogger.logAuthSuccess(req, user.userId, user.merchantId, 'jwt');
 
       next();
 
     } catch (error: any) {
-      console.error('Cognito JWT verification failed:', error.message);
+      // Parse the error to get appropriate error code
+      const errorCode = parseJwtVerificationError(error);
+      
+      // Log the authentication failure with context
+      await securityLogger.logAuthFailure(req, errorCode, {
+        errorMessage: error.message,
+        errorName: error.name,
+      });
 
-      const response: ApiResponse = {
-        success: false,
-        error: 'Invalid or expired token',
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || 'unknown',
-      };
+      const response = createAuthErrorResponse(errorCode, requestId, {
+        technicalDetails: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      });
 
-      return res.status(401).json(response);
+      return res.status(getHttpStatusForError(errorCode)).json(response);
     }
   };
 }
@@ -154,16 +200,12 @@ const mockAuthMiddleware = (req: AuthenticatedRequest, res: Response, next: Next
   // Note: With route-level auth, path-based skipping is not needed
   // Public routes (health checks, bedrock-agent) simply don't apply this middleware
   
+  const requestId = req.headers['x-request-id'] as string || `req-${Date.now()}`;
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    const response: ApiResponse = {
-      success: false,
-      error: 'Missing or invalid authorization header',
-      timestamp: new Date().toISOString(),
-      requestId: req.headers['x-request-id'] as string || 'unknown',
-    };
-    return res.status(401).json(response);
+    const response = createAuthErrorResponse(AuthErrorCode.AUTH_MISSING, requestId);
+    return res.status(getHttpStatusForError(AuthErrorCode.AUTH_MISSING)).json(response);
   }
 
   const token = authHeader.substring(7);
@@ -172,30 +214,24 @@ const mockAuthMiddleware = (req: AuthenticatedRequest, res: Response, next: Next
     // Mock user extraction for development
     const decoded = mockDecodeJWT(token);
     req.user = decoded;
+    req.authMethod = 'jwt';
     next();
-  } catch (error) {
-    const response: ApiResponse = {
-      success: false,
-      error: 'Invalid or expired token',
-      timestamp: new Date().toISOString(),
-      requestId: req.headers['x-request-id'] as string || 'unknown',
-    };
-    return res.status(401).json(response);
+  } catch (error: any) {
+    const response = createAuthErrorResponse(AuthErrorCode.TOKEN_INVALID, requestId);
+    return res.status(getHttpStatusForError(AuthErrorCode.TOKEN_INVALID)).json(response);
   }
 };
 
 /**
  * Middleware to require merchant access (tenant isolation)
  */
-export const requireMerchantAccess = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const requireMerchantAccess = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const requestId = req.headers['x-request-id'] as string || `req-${Date.now()}`;
+  const securityLogger = getAuthSecurityLogger();
+  
   if (!req.user) {
-    const response: ApiResponse = {
-      success: false,
-      error: 'Authentication required',
-      timestamp: new Date().toISOString(),
-      requestId: req.headers['x-request-id'] as string || 'unknown',
-    };
-    return res.status(401).json(response);
+    const response = createAuthErrorResponse(AuthErrorCode.AUTH_MISSING, requestId);
+    return res.status(getHttpStatusForError(AuthErrorCode.AUTH_MISSING)).json(response);
   }
 
   // Extract merchant ID from request (body, params, or query)
@@ -210,7 +246,7 @@ export const requireMerchantAccess = (req: AuthenticatedRequest, res: Response, 
       success: false,
       error: 'Merchant ID is required',
       timestamp: new Date().toISOString(),
-      requestId: req.headers['x-request-id'] as string || 'unknown',
+      requestId,
     };
     return res.status(400).json(response);
   }
@@ -222,13 +258,22 @@ export const requireMerchantAccess = (req: AuthenticatedRequest, res: Response, 
 
   // Check if user's merchant ID matches the requested merchant ID
   if (req.user.merchantId !== requestMerchantId) {
-    const response: ApiResponse = {
-      success: false,
-      error: 'Access denied to merchant resources',
-      timestamp: new Date().toISOString(),
-      requestId: req.headers['x-request-id'] as string || 'unknown',
-    };
-    return res.status(403).json(response);
+    await securityLogger.logAccessDenied(
+      req,
+      req.user.userId,
+      req.user.merchantId,
+      `Attempted to access merchant ${requestMerchantId}`
+    );
+    
+    const response = createAuthErrorResponse(
+      AuthErrorCode.ACCESS_DENIED,
+      requestId,
+      {
+        requestedMerchant: requestMerchantId,
+        userMerchant: req.user.merchantId,
+      }
+    );
+    return res.status(getHttpStatusForError(AuthErrorCode.ACCESS_DENIED)).json(response);
   }
 
   next();
@@ -238,32 +283,107 @@ export const requireMerchantAccess = (req: AuthenticatedRequest, res: Response, 
  * Middleware to require specific roles
  */
 export function requireRoles(requiredRoles: string[]) {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const requestId = req.headers['x-request-id'] as string || `req-${Date.now()}`;
+    const securityLogger = getAuthSecurityLogger();
+    
     if (!req.user) {
-      const response: ApiResponse = {
-        success: false,
-        error: 'Authentication required',
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || 'unknown',
-      };
-      return res.status(401).json(response);
+      const response = createAuthErrorResponse(AuthErrorCode.AUTH_MISSING, requestId);
+      return res.status(getHttpStatusForError(AuthErrorCode.AUTH_MISSING)).json(response);
     }
 
     const userRoles = req.user.roles || [];
     const hasRequiredRole = requiredRoles.some(role => userRoles.includes(role));
 
     if (!hasRequiredRole) {
-      const response: ApiResponse = {
-        success: false,
-        error: `Access denied. Required roles: ${requiredRoles.join(', ')}`,
-        timestamp: new Date().toISOString(),
-        requestId: req.headers['x-request-id'] as string || 'unknown',
-      };
-      return res.status(403).json(response);
+      await securityLogger.logAccessDenied(
+        req,
+        req.user.userId,
+        req.user.merchantId,
+        `Missing required roles: ${requiredRoles.join(', ')}`
+      );
+      
+      const response = createAuthErrorResponse(
+        AuthErrorCode.INSUFFICIENT_PERMISSIONS,
+        requestId,
+        {
+          requiredRoles,
+          userRoles,
+        }
+      );
+      return res.status(getHttpStatusForError(AuthErrorCode.INSUFFICIENT_PERMISSIONS)).json(response);
     }
 
     next();
   };
+}
+
+/**
+ * Middleware to require specific permissions with dual auth support
+ * Works with both JWT and API key authentication:
+ * - JWT users: Granted full permissions (portal users have full access)
+ * - API key users: Permissions checked against API key's granted permissions
+ * 
+ * Note: Use this with dualAuth() middleware. For API-key-only routes, use
+ * requirePermissions from apiKeyAuth.ts instead.
+ */
+export function requirePermissionsWithDualAuth(requiredPermissions: Permission[]) {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const requestId = req.headers['x-request-id'] as string || `req-${Date.now()}`;
+    const securityLogger = getAuthSecurityLogger();
+    
+    if (!req.user) {
+      const response = createAuthErrorResponse(AuthErrorCode.AUTH_MISSING, requestId);
+      return res.status(getHttpStatusForError(AuthErrorCode.AUTH_MISSING)).json(response);
+    }
+
+    // JWT-authenticated users (portal users) have full permissions
+    if (req.authMethod === 'jwt') {
+      return next();
+    }
+
+    // API key users must have the required permissions
+    if (req.authMethod === 'apikey' && req.apiKey) {
+      const hasPermissions = hasAllPermissions(req.apiKey.permissions, requiredPermissions);
+
+      if (!hasPermissions) {
+        await securityLogger.logAccessDenied(
+          req,
+          req.user.userId,
+          req.user.merchantId,
+          `API key missing required permissions: ${requiredPermissions.join(', ')}`
+        );
+        
+        const response = createAuthErrorResponse(
+          AuthErrorCode.INSUFFICIENT_PERMISSIONS,
+          requestId,
+          {
+            requiredPermissions,
+            grantedPermissions: req.apiKey.permissions,
+          }
+        );
+        return res.status(getHttpStatusForError(AuthErrorCode.INSUFFICIENT_PERMISSIONS)).json(response);
+      }
+
+      return next();
+    }
+
+    // Unknown auth method or missing API key info
+    const response = createAuthErrorResponse(AuthErrorCode.AUTH_INVALID_FORMAT, requestId);
+    return res.status(getHttpStatusForError(AuthErrorCode.AUTH_INVALID_FORMAT)).json(response);
+  };
+}
+
+/**
+ * Get client IP address from request
+ */
+function getClientIp(req: Request): string {
+  return (
+    (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+    (req.headers['x-real-ip'] as string) ||
+    req.socket.remoteAddress ||
+    'unknown'
+  );
 }
 
 /**
@@ -321,8 +441,8 @@ function mockDecodeJWT(token: string): { userId: string; merchantId: string; rol
       const [userId, merchantId] = token.split(':');
       return {
         userId: userId || 'dev_user_123',
-        merchantId: merchantId || 'dev_merchant_456',
-        roles: ['user'],
+        merchantId: merchantId || 'acme_electronics_2024',
+        roles: ['user', 'admin'],
         email: 'dev@example.com',
       };
     }
@@ -330,11 +450,119 @@ function mockDecodeJWT(token: string): { userId: string; merchantId: string; rol
     // Fall through to default
   }
 
-  // Default mock user for development
+  // Default mock user for development - use acme_electronics_2024 to match seed data
   return {
     userId: 'dev_user_123',
-    merchantId: 'dev_merchant_456',
-    roles: ['user'],
+    merchantId: 'acme_electronics_2024',
+    roles: ['user', 'admin'],
     email: 'dev@example.com',
   };
+}
+
+/**
+ * Dual authentication middleware that supports both JWT tokens and API keys
+ * Tries JWT authentication first, then falls back to API key authentication
+ * This allows the same endpoints to be accessed by portal users (JWT) and programmatic clients (API keys)
+ */
+export function dualAuth(config?: AuthConfig) {
+  // Create JWT auth middleware
+  const jwtAuth = authenticateJWT(config);
+  const apiKeyService = getApiKeyService();
+
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Missing or invalid authorization header',
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      return res.status(401).json(response);
+    }
+
+    const token = authHeader.substring(7);
+
+    // Detect authentication method based on token format
+    // API keys typically start with 'sk_' or similar prefix
+    // JWTs are three base64-encoded parts separated by dots
+    const isJWT = token.split('.').length === 3;
+
+    if (isJWT) {
+      // Try JWT authentication
+      return jwtAuth(req, res, (error?: any) => {
+        if (error) {
+          // JWT auth failed, try API key as fallback
+          return tryApiKeyAuth(req, res, next, token, apiKeyService);
+        }
+        // JWT auth succeeded
+        req.authMethod = 'jwt';
+        next();
+      });
+    } else {
+      // Try API key authentication
+      return tryApiKeyAuth(req, res, next, token, apiKeyService);
+    }
+  };
+}
+
+/**
+ * Helper function to attempt API key authentication
+ */
+async function tryApiKeyAuth(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+  apiKey: string,
+  apiKeyService: ReturnType<typeof getApiKeyService>
+) {
+  const requestId = req.headers['x-request-id'] as string || `req-${Date.now()}`;
+  const securityLogger = getAuthSecurityLogger();
+  
+  try {
+    // Validate the API key
+    const validation = await apiKeyService.validateKey(apiKey);
+
+    if (!validation.valid) {
+      const errorCode = AuthErrorCode.API_KEY_INVALID;
+      await securityLogger.logAuthFailure(req, errorCode, {
+        reason: 'Invalid or expired API key',
+      });
+      
+      const response = createAuthErrorResponse(errorCode, requestId);
+      return res.status(getHttpStatusForError(errorCode)).json(response);
+    }
+
+    // Attach API key info to request
+    req.apiKey = {
+      keyId: validation.keyId!,
+      merchantId: validation.merchantId!,
+      permissions: validation.permissions || []
+    };
+
+    // Also populate req.user for consistency with JWT auth
+    req.user = {
+      userId: validation.keyId!,
+      merchantId: validation.merchantId!,
+      roles: ['api_user'], // API keys have a special role
+      email: undefined,
+      groups: []
+    };
+
+    req.authMethod = 'apikey';
+    
+    // Log successful API key authentication
+    await securityLogger.logAuthSuccess(req, validation.keyId!, validation.merchantId!, 'apikey');
+    
+    next();
+  } catch (error: any) {
+    console.error('API key validation error:', error);
+    await securityLogger.logAuthFailure(req, AuthErrorCode.AUTH_SYSTEM_ERROR, {
+      errorMessage: error.message,
+    });
+    
+    const response = createAuthErrorResponse(AuthErrorCode.AUTH_SYSTEM_ERROR, requestId);
+    return res.status(getHttpStatusForError(AuthErrorCode.AUTH_SYSTEM_ERROR)).json(response);
+  }
 }

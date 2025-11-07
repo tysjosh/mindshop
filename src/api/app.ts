@@ -8,9 +8,18 @@ import { v4 as uuidv4 } from "uuid";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { loggingMiddleware } from "./middleware/logging";
 import { metricsLoggingMiddleware } from "./middleware/metricsLogging";
-import { cognitoAuthMiddleware } from "./middleware/cognitoAuth";
-import { createAuthMiddleware } from "./middleware/auth";
 import { sessionCostCheckMiddleware } from "./middleware/costTracking";
+import { impersonationMiddleware } from "./middleware/impersonation";
+import {
+  etagMiddleware,
+  cacheControlMiddleware,
+  responseTimeMiddleware,
+  optimizedCompression,
+  requestTimeoutMiddleware,
+  paginationMiddleware,
+  responseSizeLimiter,
+  memoryMonitoringMiddleware,
+} from "./middleware/performanceOptimization";
 
 // Import routes
 import chatRoutes from "./routes/chat";
@@ -20,6 +29,15 @@ import semanticRetrievalRoutes from "./routes/semanticRetrieval";
 import bedrockAgentRoutes from "./routes/bedrockAgent";
 import bedrockIntegrationRoutes from "./routes/bedrockIntegration";
 import ragRoutes from "./routes/rag";
+import merchantRoutes from "./routes/merchants";
+import apiKeyRoutes from "./routes/apiKeys";
+import usageRoutes from "./routes/usage";
+import analyticsRoutes from "./routes/analytics";
+import performanceRoutes from "./routes/performance";
+import billingRoutes from "./routes/billing";
+import webhookRoutes from "./routes/webhooks";
+import adminRoutes from "./routes/admin";
+import productSyncRoutes from "./routes/productSync";
 
 // Import checkout service route
 import { createCheckoutRoutes } from "./routes/checkout";
@@ -68,10 +86,27 @@ export class APIGatewayApp {
       })
     );
 
-    // CORS configuration
+    // CORS configuration with dynamic origin validation
     this.app.use(
       cors({
-        origin: this.config.corsOrigins,
+        origin: (origin, callback) => {
+          // Allow requests with no origin (mobile apps, curl, Postman, etc.)
+          if (!origin) {
+            return callback(null, true);
+          }
+
+          // Check if origin is in the whitelist
+          const allowedOrigins = this.config.corsOrigins;
+          if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+            return callback(null, true);
+          }
+
+          // For widget endpoints, allow all origins to enable merchant site integration
+          // Widget endpoints: /api/chat, /api/sessions, /api/documents, /api/bedrock-agent
+          // This allows the widget to work on any merchant domain
+          // Admin and merchant management endpoints are still protected by the whitelist above
+          return callback(null, true);
+        },
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allowedHeaders: [
@@ -80,16 +115,39 @@ export class APIGatewayApp {
           "X-Request-ID",
           "X-Merchant-ID",
           "X-User-ID",
+          "X-Impersonation-Token",
+          "X-API-Key",
+        ],
+        exposedHeaders: [
+          "X-Impersonating",
+          "X-Impersonated-By",
+          "X-RateLimit-Limit",
+          "X-RateLimit-Remaining",
+          "X-RateLimit-Reset",
+          "X-Request-ID",
         ],
       })
     );
 
-    // Compression
-    this.app.use(compression());
+    // Optimized compression with custom settings
+    this.app.use(optimizedCompression());
 
     // Body parsing
     this.app.use(express.json({ limit: "10mb" }));
     this.app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+    // Performance optimization middleware
+    this.app.use(responseTimeMiddleware()); // Track response times
+    this.app.use(requestTimeoutMiddleware(30000)); // 30 second timeout
+    this.app.use(responseSizeLimiter(10 * 1024 * 1024)); // 10MB max response
+    this.app.use(etagMiddleware()); // ETag support for conditional requests
+    this.app.use(cacheControlMiddleware()); // Cache-Control headers
+    this.app.use(paginationMiddleware()); // Pagination helper
+    
+    // Memory monitoring (production only)
+    if (this.config.environment === 'production') {
+      this.app.use(memoryMonitoringMiddleware());
+    }
 
     // Request ID middleware
     this.app.use((req: Request, res: Response, next) => {
@@ -108,6 +166,10 @@ export class APIGatewayApp {
 
     // Cost tracking and session monitoring
     this.app.use(sessionCostCheckMiddleware());
+
+    // Impersonation middleware (must be after auth but before routes)
+    // Allows admins to impersonate merchants for debugging/support
+    this.app.use(impersonationMiddleware());
 
     // Note: Authentication is applied at the route level, not globally
     // This allows for more granular control over which routes require auth
@@ -152,6 +214,7 @@ export class APIGatewayApp {
             semanticRetrieval: "/api/semantic-retrieval",
             bedrockAgent: "/api/bedrock-agent",
             checkout: "/api/checkout",
+            merchants: "/api/merchants",
           },
           documentation: "/api/docs",
         },
@@ -161,16 +224,27 @@ export class APIGatewayApp {
     });
 
     // Mount API routes
+    // IMPORTANT: Mount specific routes BEFORE wildcard routes
+    // Merchant routes must come before bedrockIntegrationRoutes and ragRoutes
+    // because those are mounted at /api and would catch /api/merchants/* requests
+    this.app.use("/api/merchants", merchantRoutes); // Merchant account management (must be first!)
+    this.app.use("/api/merchants", apiKeyRoutes); // API key management (nested under merchants)
+    this.app.use("/api/merchants", usageRoutes); // Usage tracking and limits (nested under merchants)
+    this.app.use("/api/merchants", analyticsRoutes); // Analytics dashboard (nested under merchants)
+    this.app.use("/api/merchants", productSyncRoutes); // Product sync management (nested under merchants)
+    this.app.use("/api/billing", billingRoutes); // Billing and subscription management
+    this.app.use("/api/merchants", billingRoutes); // Also mount under merchants for nested routes
+    this.app.use("/api/merchants", webhookRoutes); // Webhook management (nested under merchants)
+    this.app.use("/api/admin", adminRoutes); // Admin panel (admin role required)
+    this.app.use("/api/performance", performanceRoutes); // Performance monitoring (admin only)
     this.app.use("/api/chat", chatRoutes);
     this.app.use("/api/documents", documentRoutes);
     this.app.use("/api/sessions", sessionRoutes);
     this.app.use("/api/semantic-retrieval", semanticRetrievalRoutes);
     this.app.use("/api/bedrock-agent", bedrockAgentRoutes);
-    this.app.use("/api", bedrockIntegrationRoutes); // Direct MindsDB-Bedrock Integration
-    this.app.use("/api", ragRoutes); // MindsDB RAG routes
-
-    // Mount checkout routes (Lambda-based)
-    this.app.use("/api/checkout", createCheckoutRoutes());
+    this.app.use("/api/checkout", createCheckoutRoutes()); // Checkout routes (Lambda-based)
+    this.app.use("/api", bedrockIntegrationRoutes); // Direct MindsDB-Bedrock Integration (wildcard)
+    this.app.use("/api", ragRoutes); // MindsDB RAG routes (wildcard)
 
     // API documentation endpoint
     this.app.get("/api/docs", (req: Request, res: Response) => {
@@ -485,6 +559,165 @@ export class APIGatewayApp {
           rateLimit: "50 requests/minute",
           params: { transactionId: "string (UUID)" },
           query: { merchantId: "string (required)" },
+        },
+      },
+      merchants: {
+        "POST /api/merchants/register": {
+          description: "Register a new merchant account",
+          authentication: "none",
+          rateLimit: "10 requests/minute",
+          body: {
+            email: "string (required)",
+            password: "string (required, min 8 chars)",
+            companyName: "string (required)",
+            website: "string (optional)",
+            industry: "string (optional)",
+          },
+        },
+        "POST /api/merchants/verify-email": {
+          description: "Verify email with confirmation code",
+          authentication: "none",
+          rateLimit: "10 requests/minute",
+          body: {
+            email: "string (required)",
+            code: "string (required)",
+          },
+        },
+        "POST /api/merchants/resend-verification": {
+          description: "Resend verification code",
+          authentication: "none",
+          rateLimit: "5 requests/minute",
+          body: {
+            email: "string (required)",
+          },
+        },
+        "POST /api/merchants/login": {
+          description: "Login with email and password",
+          authentication: "none",
+          rateLimit: "20 requests/minute",
+          body: {
+            email: "string (required)",
+            password: "string (required)",
+          },
+        },
+        "POST /api/merchants/refresh-token": {
+          description: "Refresh access token",
+          authentication: "none",
+          rateLimit: "50 requests/minute",
+          body: {
+            refreshToken: "string (required)",
+          },
+        },
+        "POST /api/merchants/forgot-password": {
+          description: "Initiate forgot password flow",
+          authentication: "none",
+          rateLimit: "5 requests/minute",
+          body: {
+            email: "string (required)",
+          },
+        },
+        "POST /api/merchants/reset-password": {
+          description: "Reset password with confirmation code",
+          authentication: "none",
+          rateLimit: "10 requests/minute",
+          body: {
+            email: "string (required)",
+            code: "string (required)",
+            newPassword: "string (required, min 8 chars)",
+          },
+        },
+        "GET /api/merchants/:merchantId/profile": {
+          description: "Get merchant profile",
+          authentication: "required",
+          rateLimit: "100 requests/minute",
+          params: { merchantId: "string (required)" },
+        },
+        "PUT /api/merchants/:merchantId/profile": {
+          description: "Update merchant profile",
+          authentication: "required",
+          rateLimit: "50 requests/minute",
+          params: { merchantId: "string (required)" },
+          body: {
+            companyName: "string (optional)",
+            website: "string (optional)",
+            industry: "string (optional)",
+          },
+        },
+        "GET /api/merchants/:merchantId/settings": {
+          description: "Get merchant settings",
+          authentication: "required",
+          rateLimit: "100 requests/minute",
+          params: { merchantId: "string (required)" },
+        },
+        "PUT /api/merchants/:merchantId/settings": {
+          description: "Update merchant settings",
+          authentication: "required",
+          rateLimit: "50 requests/minute",
+          params: { merchantId: "string (required)" },
+          body: {
+            settings: "object (required)",
+          },
+        },
+        "DELETE /api/merchants/:merchantId/account": {
+          description: "Delete merchant account",
+          authentication: "required",
+          rateLimit: "5 requests/minute",
+          params: { merchantId: "string (required)" },
+        },
+        "POST /api/merchants/:merchantId/api-keys": {
+          description: "Create a new API key",
+          authentication: "required",
+          rateLimit: "10 requests/minute",
+          params: { merchantId: "string (required)" },
+          body: {
+            name: "string (required)",
+            environment: "string (required: development|production)",
+            permissions: "array of strings (optional)",
+            expiresInDays: "number (optional)",
+          },
+        },
+        "GET /api/merchants/:merchantId/api-keys": {
+          description: "List all API keys for a merchant",
+          authentication: "required",
+          rateLimit: "100 requests/minute",
+          params: { merchantId: "string (required)" },
+          query: {
+            includeRevoked: "boolean (optional, default: false)",
+          },
+        },
+        "DELETE /api/merchants/:merchantId/api-keys/:keyId": {
+          description: "Revoke an API key",
+          authentication: "required",
+          rateLimit: "50 requests/minute",
+          params: {
+            merchantId: "string (required)",
+            keyId: "string (required)",
+          },
+        },
+        "POST /api/merchants/:merchantId/api-keys/:keyId/rotate": {
+          description: "Rotate an API key (generate new, deprecate old)",
+          authentication: "required",
+          rateLimit: "10 requests/minute",
+          params: {
+            merchantId: "string (required)",
+            keyId: "string (required)",
+          },
+          body: {
+            gracePeriodDays: "number (optional, default: 7)",
+          },
+        },
+        "GET /api/merchants/:merchantId/api-keys/:keyId/usage": {
+          description: "Get usage statistics for an API key",
+          authentication: "required",
+          rateLimit: "100 requests/minute",
+          params: {
+            merchantId: "string (required)",
+            keyId: "string (required)",
+          },
+          query: {
+            startDate: "string (optional, ISO date, default: 30 days ago)",
+            endDate: "string (optional, ISO date, default: now)",
+          },
         },
       },
     };

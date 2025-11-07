@@ -274,6 +274,22 @@ paths:
   /semantic-retrieval/health:
     $ref: './paths/semantic-retrieval.yaml#/semanticRetrievalHealth'
 
+  # Analytics
+  /api/merchants/{merchantId}/analytics/overview:
+    $ref: './paths/analytics.yaml#/api/merchants/{merchantId}/analytics/overview'
+  
+  /api/merchants/{merchantId}/analytics/queries:
+    $ref: './paths/analytics.yaml#/api/merchants/{merchantId}/analytics/queries'
+  
+  /api/merchants/{merchantId}/analytics/top-queries:
+    $ref: './paths/analytics.yaml#/api/merchants/{merchantId}/analytics/top-queries'
+  
+  /api/merchants/{merchantId}/analytics/performance:
+    $ref: './paths/analytics.yaml#/api/merchants/{merchantId}/analytics/performance'
+  
+  /api/merchants/{merchantId}/analytics/intents:
+    $ref: './paths/analytics.yaml#/api/merchants/{merchantId}/analytics/intents'
+
 tags:
   - name: Health
     description: System health and status endpoints
@@ -295,6 +311,8 @@ tags:
     description: RAG system initialization, document ingestion, and question answering
   - name: Semantic Retrieval
     description: MindsDB-powered semantic retrieval with predictor management and grounding validation
+  - name: Analytics
+    description: Merchant analytics and usage insights including queries, performance metrics, and intent distribution
 
 externalDocs:
   description: Full API Documentation

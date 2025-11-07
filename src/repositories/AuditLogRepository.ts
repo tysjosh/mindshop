@@ -1,7 +1,7 @@
 import { BaseRepository } from "./BaseRepository";
 import { auditLogs, type NewAuditLog } from "../database/schema";
 import { AuditLog } from "../types";
-import { eq, and, desc, gte, lte } from "drizzle-orm";
+import { eq, and, desc, gte, lte, sql } from "drizzle-orm";
 
 export class AuditLogRepository extends BaseRepository {
   public async create(
@@ -117,6 +117,75 @@ export class AuditLogRepository extends BaseRepository {
       .orderBy(desc(auditLogs.timestamp));
 
     return result.map(this.mapRowToAuditLog);
+  }
+
+  public async findAll(
+    limit: number = 100,
+    offset: number = 0,
+    merchantId?: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<AuditLog[]> {
+    const conditions = [];
+
+    if (merchantId) {
+      this.validateMerchantId(merchantId);
+      conditions.push(eq(auditLogs.merchantId, merchantId));
+    }
+
+    if (startDate) {
+      conditions.push(gte(auditLogs.timestamp, startDate));
+    }
+
+    if (endDate) {
+      conditions.push(lte(auditLogs.timestamp, endDate));
+    }
+
+    let query = this.db
+      .select()
+      .from(auditLogs)
+      .orderBy(desc(auditLogs.timestamp))
+      .limit(limit)
+      .offset(offset);
+
+    if (conditions.length > 0) {
+      query = (query as any).where(and(...conditions));
+    }
+
+    const result = await query;
+    return result.map(this.mapRowToAuditLog);
+  }
+
+  public async countAll(
+    merchantId?: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<number> {
+    const conditions = [];
+
+    if (merchantId) {
+      this.validateMerchantId(merchantId);
+      conditions.push(eq(auditLogs.merchantId, merchantId));
+    }
+
+    if (startDate) {
+      conditions.push(gte(auditLogs.timestamp, startDate));
+    }
+
+    if (endDate) {
+      conditions.push(lte(auditLogs.timestamp, endDate));
+    }
+
+    let query = this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(auditLogs);
+
+    if (conditions.length > 0) {
+      query = (query as any).where(and(...conditions));
+    }
+
+    const result = await query;
+    return Number(result[0]?.count || 0);
   }
 
   public async delete(id: string): Promise<void> {

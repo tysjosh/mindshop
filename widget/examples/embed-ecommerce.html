@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Assistant - E-commerce Integration Examples</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    
+    .header p {
+      font-size: 18px;
+      color: #666;
+    }
+    
+    .platform-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    
+    .platform-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .platform-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    
+    .platform-header {
+      padding: 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-align: center;
+    }
+    
+    .platform-header h2 {
+      font-size: 28px;
+      margin-bottom: 5px;
+    }
+    
+    .platform-header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+    
+    .platform-content {
+      padding: 30px;
+    }
+    
+    .platform-content h3 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #667eea;
+    }
+    
+    .platform-content p {
+      font-size: 14px;
+      margin-bottom: 15px;
+      color: #666;
+    }
+    
+    .code-block {
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+      overflow-x: auto;
+    }
+    
+    .code-block pre {
+      margin: 0;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #333;
+    }
+    
+    .code-block code {
+      font-family: 'Courier New', monospace;
+    }
+    
+    .steps {
+      list-style: none;
+      counter-reset: step-counter;
+    }
+    
+    .steps li {
+      counter-increment: step-counter;
+      margin-bottom: 20px;
+      padding-left: 40px;
+      position: relative;
+    }
+    
+    .steps li::before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      background: #667eea;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    
+    .note {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .note strong {
+      color: #856404;
+    }
+    
+    .success {
+      background: #d4edda;
+      border-left: 4px solid #28a745;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .success strong {
+      color: #155724;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🛍️ E-commerce Platform Integration</h1>
+      <p>Ready-to-use code snippets for popular platforms</p>
+    </div>
+    
+    <div class="platform-grid">
+      <!-- Shopify -->
+      <div class="platform-card">
+        <div class="platform-header">
+          <h2>Shopify</h2>
+          <p>Most popular e-commerce platform</p>
+        </div>
+        <div class="platform-content">
+          <h3>Installation Steps</h3>
+          <ol class="steps">
+            <li>Go to your Shopify admin panel</li>
+            <li>Navigate to <strong>Online Store → Themes</strong></li>
+            <li>Click <strong>Actions → Edit code</strong></li>
+            <li>Open <strong>theme.liquid</strong></li>
+            <li>Paste the code below before <code>&lt;/body&gt;</code></li>
+          </ol>
+          
+          <h3>Code Snippet</h3>
+          <div class="code-block">
+            <pre>&lt;script&gt;
+(function(w,d,s,o,f,js,fjs){
+  w['RAGAssistant']=o;
+  w[o]=w[o]||function(){
+    (w[o].q=w[o].q||[]).push(arguments)
+  };
+  js=d.createElement(s);
+  fjs=d.getElementsByTagName(s)[0];
+  js.id=o;js.src=f;js.async=1;
+  fjs.parentNode.insertBefore(js,fjs);
+}(window,document,'script','ra',
+  'https://cdn.rag-assistant.com/v1/widget.js'));
+
+ra('init', {
+  merchantId: 'YOUR_MERCHANT_ID',
+  apiKey: 'YOUR_API_KEY',
+  integration: {
+    addToCartCallback: (product) => {
+      // Shopify AJAX Cart API
+      fetch('/cart/add.js', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: product.variantId,
+          quantity: 1
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Redirect to cart or show notification
+        window.location.href = '/cart';
+      });
+    }
+  }
+});
+&lt;/script&gt;</pre>
+          </div>
+          
+          <div class="note">
+            <strong>Note:</strong> Replace <code>YOUR_MERCHANT_ID</code> and 
+            <code>YOUR_API_KEY</code> with your actual credentials.
+          </div>
+        </div>
+      </div>
+      
+      <!-- WooCommerce -->
+      <div class="platform-card">
+        <div class="platform-header">
+          <h2>WooCommerce</h2>
+          <p>WordPress e-commerce plugin</p>
+        </div>
+        <div class="platform-content">
+          <h3>Installation Steps</h3>
+          <ol class="steps">
+            <li>Go to WordPress admin panel</li>
+            <li>Navigate to <strong>Appearance → Theme Editor</strong></li>
+            <li>Select <strong>footer.php</strong></li>
+            <li>Paste the code below before <code>&lt;/body&gt;</code></li>
+            <li>Click <strong>Update File</strong></li>
+          </ol>
+          
+          <h3>Code Snippet</h3>
+          <div class="code-block">
+            <pre>&lt;script&gt;
+(function(w,d,s,o,f,js,fjs){
+  w['RAGAssistant']=o;
+  w[o]=w[o]||function(){
+    (w[o].q=w[o].q||[]).push(arguments)
+  };
+  js=d.createElement(s);
+  fjs=d.getElementsByTagName(s)[0];
+  js.id=o;js.src=f;js.async=1;
+  fjs.parentNode.insertBefore(js,fjs);
+}(window,document,'script','ra',
+  'https://cdn.rag-assistant.com/v1/widget.js'));
+
+ra('init', {
+  merchantId: 'YOUR_MERCHANT_ID',
+  apiKey: 'YOUR_API_KEY',
+  integration: {
+    addToCartCallback: (product) => {
+      // WooCommerce AJAX Add to Cart
+      jQuery.post(
+        '&lt;?php echo admin_url('admin-ajax.php'); ?&gt;',
+        {
+          action: 'woocommerce_add_to_cart',
+          product_id: product.id,
+          quantity: 1
+        },
+        function(response) {
+          // Redirect to cart
+          window.location.href = 
+            '&lt;?php echo wc_get_cart_url(); ?&gt;';
+        }
+      );
+    }
+  }
+});
+&lt;/script&gt;</pre>
+          </div>
+          
+          <div class="note">
+            <strong>Alternative:</strong> Use a plugin like "Insert Headers and Footers" 
+            to add the code without editing theme files.
+          </div>
+        </div>
+      </div>
+      
+      <!-- BigCommerce -->
+      <div class="platform-card">
+        <div class="platform-header">
+          <h2>BigCommerce</h2>
+          <p>Enterprise e-commerce platform</p>
+        </div>
+        <div class="platform-content">
+          <h3>Installation Steps</h3>
+          <ol class="steps">
+            <li>Go to BigCommerce admin panel</li>
+            <li>Navigate to <strong>Storefront → Script Manager</strong></li>
+            <li>Click <strong>Create a Script</strong></li>
+            <li>Set location to <strong>Footer</strong></li>
+            <li>Paste the code below</li>
+            <li>Click <strong>Save</strong></li>
+          </ol>
+          
+          <h3>Code Snippet</h3>
+          <div class="code-block">
+            <pre>&lt;script&gt;
+(function(w,d,s,o,f,js,fjs){
+  w['RAGAssistant']=o;
+  w[o]=w[o]||function(){
+    (w[o].q=w[o].q||[]).push(arguments)
+  };
+  js=d.createElement(s);
+  fjs=d.getElementsByTagName(s)[0];
+  js.id=o;js.src=f;js.async=1;
+  fjs.parentNode.insertBefore(js,fjs);
+}(window,document,'script','ra',
+  'https://cdn.rag-assistant.com/v1/widget.js'));
+
+ra('init', {
+  merchantId: 'YOUR_MERCHANT_ID',
+  apiKey: 'YOUR_API_KEY',
+  integration: {
+    addToCartCallback: (product) => {
+      // BigCommerce Storefront API
+      fetch('/api/storefront/carts', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          lineItems: [{
+            productId: product.id,
+            quantity: 1
+          }]
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        window.location.href = '/cart.php';
+      });
+    }
+  }
+});
+&lt;/script&gt;</pre>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Magento -->
+      <div class="platform-card">
+        <div class="platform-header">
+          <h2>Magento</h2>
+          <p>Open-source e-commerce platform</p>
+        </div>
+        <div class="platform-content">
+          <h3>Installation Steps</h3>
+          <ol class="steps">
+            <li>Go to Magento admin panel</li>
+            <li>Navigate to <strong>Content → Design → Configuration</strong></li>
+            <li>Select your store view</li>
+            <li>Expand <strong>HTML Head</strong></li>
+            <li>Paste code in <strong>Scripts and Style Sheets</strong></li>
+            <li>Click <strong>Save Configuration</strong></li>
+          </ol>
+          
+          <h3>Code Snippet</h3>
+          <div class="code-block">
+            <pre>&lt;script&gt;
+(function(w,d,s,o,f,js,fjs){
+  w['RAGAssistant']=o;
+  w[o]=w[o]||function(){
+    (w[o].q=w[o].q||[]).push(arguments)
+  };
+  js=d.createElement(s);
+  fjs=d.getElementsByTagName(s)[0];
+  js.id=o;js.src=f;js.async=1;
+  fjs.parentNode.insertBefore(js,fjs);
+}(window,document,'script','ra',
+  'https://cdn.rag-assistant.com/v1/widget.js'));
+
+ra('init', {
+  merchantId: 'YOUR_MERCHANT_ID',
+  apiKey: 'YOUR_API_KEY',
+  integration: {
+    addToCartCallback: (product) => {
+      // Magento 2 AJAX Add to Cart
+      require(['jquery'], function($) {
+        $.ajax({
+          url: '/checkout/cart/add',
+          type: 'POST',
+          data: {
+            product: product.id,
+            qty: 1
+          },
+          success: function() {
+            window.location.href = '/checkout/cart';
+          }
+        });
+      });
+    }
+  }
+});
+&lt;/script&gt;</pre>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Custom Platform -->
+      <div class="platform-card">
+        <div class="platform-header">
+          <h2>Custom Platform</h2>
+          <p>Any custom e-commerce site</p>
+        </div>
+        <div class="platform-content">
+          <h3>Installation Steps</h3>
+          <ol class="steps">
+            <li>Open your site's HTML template</li>
+            <li>Find the closing <code>&lt;/body&gt;</code> tag</li>
+            <li>Paste the code below before it</li>
+            <li>Customize the callbacks for your cart system</li>
+            <li>Deploy your changes</li>
+          </ol>
+          
+          <h3>Code Snippet</h3>
+          <div class="code-block">
+            <pre>&lt;script&gt;
+(function(w,d,s,o,f,js,fjs){
+  w['RAGAssistant']=o;
+  w[o]=w[o]||function(){
+    (w[o].q=w[o].q||[]).push(arguments)
+  };
+  js=d.createElement(s);
+  fjs=d.getElementsByTagName(s)[0];
+  js.id=o;js.src=f;js.async=1;
+  fjs.parentNode.insertBefore(js,fjs);
+}(window,document,'script','ra',
+  'https://cdn.rag-assistant.com/v1/widget.js'));
+
+ra('init', {
+  merchantId: 'YOUR_MERCHANT_ID',
+  apiKey: 'YOUR_API_KEY',
+  integration: {
+    addToCartCallback: (product) => {
+      // Your custom add to cart logic
+      fetch('/api/cart/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          productId: product.id,
+          quantity: 1
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Show success message or redirect
+        alert('Added to cart!');
+      });
+    },
+    checkoutCallback: (items) => {
+      // Your custom checkout logic
+      window.location.href = '/checkout';
+    }
+  }
+});
+&lt;/script&gt;</pre>
+          </div>
+          
+          <div class="success">
+            <strong>Flexible:</strong> Adapt the callbacks to match your 
+            existing cart and checkout system.
+          </div>
+        </div>
+      </div>
+      
+      <!-- React/Vue/Angular -->
+      <div class="platform-card">
+        <div class="platform-header">
+          <h2>React / Vue / Angular</h2>
+          <p>Modern JavaScript frameworks</p>
+        </div>
+        <div class="platform-content">
+          <h3>Installation Steps</h3>
+          <ol class="steps">
+            <li>Install via NPM: <code>npm install @rag-assistant/widget</code></li>
+            <li>Import in your component</li>
+            <li>Initialize in <code>componentDidMount</code> or <code>useEffect</code></li>
+          </ol>
+          
+          <h3>React Example</h3>
+          <div class="code-block">
+            <pre>import { useEffect } from 'react';
+import RAGAssistant from '@rag-assistant/widget';
+
+function App() {
+  useEffect(() => {
+    const assistant = new RAGAssistant({
+      merchantId: 'YOUR_MERCHANT_ID',
+      apiKey: 'YOUR_API_KEY',
+      integration: {
+        addToCartCallback: (product) => {
+          // Use your Redux/Context cart actions
+          dispatch(addToCart(product));
+        }
+      }
+    });
+    
+    return () => {
+      // Cleanup if needed
+    };
+  }, []);
+  
+  return &lt;div&gt;Your App&lt;/div&gt;;
+}</pre>
+          </div>
+          
+          <h3>Vue Example</h3>
+          <div class="code-block">
+            <pre>import RAGAssistant from '@rag-assistant/widget';
+
+export default {
+  mounted() {
+    this.assistant = new RAGAssistant({
+      merchantId: 'YOUR_MERCHANT_ID',
+      apiKey: 'YOUR_API_KEY',
+      integration: {
+        addToCartCallback: (product) => {
+          // Use Vuex store
+          this.$store.dispatch('addToCart', product);
+        }
+      }
+    });
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="header">
+      <h2>Need Help?</h2>
+      <p>Check out our <a href="EMBED_GUIDE.md" style="color: #667eea;">complete embed guide</a> or contact support@rag-assistant.com</p>
+    </div>
+  </div>
+</body>
+</html>

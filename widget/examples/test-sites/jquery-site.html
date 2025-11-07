@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Site: jQuery Integration</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+    }
+    
+    .navbar {
+      background: #2c3e50;
+      color: white;
+      padding: 15px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .navbar .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .navbar h1 {
+      font-size: 24px;
+    }
+    
+    .navbar .badge {
+      background: #e74c3c;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .hero {
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      color: white;
+      padding: 60px 40px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .hero h2 {
+      font-size: 36px;
+      margin-bottom: 15px;
+    }
+    
+    .hero p {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+    
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .section h3 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    
+    .btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 15px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .btn:hover {
+      background: #2980b9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+    }
+    
+    .btn:active {
+      transform: translateY(0);
+    }
+    
+    .btn.success {
+      background: #27ae60;
+    }
+    
+    .btn.success:hover {
+      background: #229954;
+    }
+    
+    .btn.danger {
+      background: #e74c3c;
+    }
+    
+    .btn.danger:hover {
+      background: #c0392b;
+    }
+    
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    
+    .product {
+      background: white;
+      border: 1px solid #ecf0f1;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    
+    .product:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    
+    .product-image {
+      width: 100%;
+      height: 220px;
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 64px;
+    }
+    
+    .product-body {
+      padding: 20px;
+    }
+    
+    .product-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 8px;
+    }
+    
+    .product-desc {
+      color: #7f8c8d;
+      font-size: 14px;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    
+    .product-price {
+      font-size: 24px;
+      font-weight: 700;
+      color: #3498db;
+      margin-bottom: 15px;
+    }
+    
+    .product-btn {
+      width: 100%;
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+    
+    .product-btn:hover {
+      background: #2980b9;
+    }
+    
+    .log-container {
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .log-entry {
+      padding: 8px 0;
+      border-bottom: 1px solid #34495e;
+    }
+    
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+    
+    .log-time {
+      color: #95a5a6;
+      margin-right: 10px;
+    }
+    
+    .log-type {
+      font-weight: 600;
+      margin-right: 10px;
+    }
+    
+    .log-type.info { color: #3498db; }
+    .log-type.success { color: #27ae60; }
+    .log-type.error { color: #e74c3c; }
+    .log-type.warn { color: #f39c12; }
+    
+    .cart-summary {
+      background: #ecf0f1;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    
+    .cart-summary h4 {
+      color: #2c3e50;
+      margin-bottom: 15px;
+    }
+    
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #bdc3c7;
+    }
+    
+    .cart-total {
+      font-size: 20px;
+      font-weight: 700;
+      color: #2c3e50;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 2px solid #95a5a6;
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div class="container">
+      <div>
+        <h1>
+          <i class="fas fa-store"></i> jQuery E-commerce Store
+          <span class="badge">TEST</span>
+        </h1>
+      </div>
+      <div id="cartCount" style="font-size: 18px;">
+        <i class="fas fa-shopping-cart"></i> Cart: <span id="cartItemCount">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="hero">
+      <h2><i class="fas fa-flask"></i> jQuery Integration Test</h2>
+      <p>Testing RAG Assistant widget with jQuery-based e-commerce site</p>
+    </div>
+
+    <div class="section">
+      <h3><i class="fas fa-gamepad"></i> Widget Controls</h3>
+      <div class="button-grid">
+        <button class="btn" id="btnOpen">
+          <i class="fas fa-comment"></i> Open Widget
+        </button>
+        <button class="btn" id="btnClose">
+          <i class="fas fa-times"></i> Close Widget
+        </button>
+        <button class="btn success" id="btnSendMessage">
+          <i class="fas fa-paper-plane"></i> Send Message
+        </button>
+        <button class="btn" id="btnGetSession">
+          <i class="fas fa-id-card"></i> Get Session
+        </button>
+        <button class="btn danger" id="btnClearHistory">
+          <i class="fas fa-trash"></i> Clear History
+        </button>
+        <button class="btn danger" id="btnResetSession">
+          <i class="fas fa-redo"></i> Reset Session
+        </button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3><i class="fas fa-shopping-bag"></i> Products</h3>
+      <div class="products-grid" id="productsGrid">
+        <!-- Products will be loaded via jQuery -->
+      </div>
+      
+      <div class="cart-summary" id="cartSummary" style="display: none;">
+        <h4><i class="fas fa-shopping-cart"></i> Shopping Cart</h4>
+        <div id="cartItems"></div>
+        <div class="cart-total">
+          Total: $<span id="cartTotal">0.00</span>
+        </div>
+        <button class="btn success" id="btnCheckout" style="width: 100%; margin-top: 15px;">
+          <i class="fas fa-credit-card"></i> Proceed to Checkout
+        </button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3><i class="fas fa-terminal"></i> Event Log</h3>
+      <div class="log-container" id="logContainer">
+        <!-- Logs will be added via jQuery -->
+      </div>
+    </div>
+  </div>
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  
+  <!-- RAG Assistant Widget -->
+  <script src="../../dist/widget.js"></script>
+  
+  <script>
+    $(document).ready(function() {
+      // Shopping cart state
+      let cart = [];
+      let assistant = null;
+      
+      // Sample products
+      const products = [
+        { id: 1, name: 'Gaming Laptop', price: 1899.99, icon: '🎮', desc: 'High-performance gaming laptop with RTX 4080' },
+        { id: 2, name: 'Mechanical Keyboard', price: 149.99, icon: '⌨️', desc: 'RGB mechanical keyboard with Cherry MX switches' },
+        { id: 3, name: 'Gaming Mouse', price: 79.99, icon: '🖱️', desc: 'Wireless gaming mouse with 25K DPI sensor' },
+        { id: 4, name: 'Monitor 4K', price: 599.99, icon: '🖥️', desc: '32" 4K 144Hz gaming monitor with HDR' },
+        { id: 5, name: 'Headset', price: 199.99, icon: '🎧', desc: 'Wireless gaming headset with 7.1 surround sound' },
+        { id: 6, name: 'Webcam', price: 129.99, icon: '📷', desc: '4K webcam with auto-focus and HDR' }
+      ];
+      
+      // Logging function
+      function log(message, type = 'info') {
+        const time = new Date().toLocaleTimeString();
+        const $entry = $('<div class="log-entry"></div>');
+        $entry.html(`
+          <span class="log-time">${time}</span>
+          <span class="log-type ${type}">[${type.toUpperCase()}]</span>
+          <span>${message}</span>
+        `);
+        $('#logContainer').append($entry);
+        $('#logContainer').scrollTop($('#logContainer')[0].scrollHeight);
+      }
+      
+      // Render products
+      function renderProducts() {
+        products.forEach(product => {
+          const $product = $(`
+            <div class="product" data-id="${product.id}">
+              <div class="product-image">${product.icon}</div>
+              <div class="product-body">
+                <div class="product-title">${product.name}</div>
+                <div class="product-desc">${product.desc}</div>
+                <div class="product-price">$${product.price.toFixed(2)}</div>
+                <button class="product-btn" data-id="${product.id}">
+                  <i class="fas fa-cart-plus"></i> Add to Cart
+                </button>
+              </div>
+            </div>
+          `);
+          $('#productsGrid').append($product);
+        });
+      }
+      
+      // Update cart display
+      function updateCart() {
+        $('#cartItemCount').text(cart.length);
+        
+        if (cart.length === 0) {
+          $('#cartSummary').hide();
+          return;
+        }
+        
+        $('#cartSummary').show();
+        $('#cartItems').empty();
+        
+        let total = 0;
+        cart.forEach(item => {
+          total += item.price;
+          const $item = $(`
+            <div class="cart-item">
+              <span>${item.name}</span>
+              <span>$${item.price.toFixed(2)}</span>
+            </div>
+          `);
+          $('#cartItems').append($item);
+        });
+        
+        $('#cartTotal').text(total.toFixed(2));
+      }
+      
+      // Add to cart handler
+      $(document).on('click', '.product-btn', function() {
+        const productId = $(this).data('id');
+        const product = products.find(p => p.id === productId);
+        
+        if (product) {
+          cart.push(product);
+          updateCart();
+          log(`Added "${product.name}" to cart ($${product.price})`, 'success');
+          
+          // Show notification
+          $(this).text('✓ Added!').css('background', '#27ae60');
+          setTimeout(() => {
+            $(this).html('<i class="fas fa-cart-plus"></i> Add to Cart').css('background', '');
+          }, 1000);
+        }
+      });
+      
+      // Checkout handler
+      $('#btnCheckout').click(function() {
+        if (cart.length === 0) return;
+        
+        log(`Checkout initiated with ${cart.length} items`, 'info');
+        alert(`Checkout with ${cart.length} items\n\nTotal: $${$('#cartTotal').text()}`);
+        
+        // Clear cart
+        cart = [];
+        updateCart();
+        log('Cart cleared after checkout', 'success');
+      });
+      
+      // Widget control handlers
+      $('#btnOpen').click(function() {
+        log('Opening widget...', 'info');
+        if (assistant) {
+          assistant.open();
+          log('Widget opened', 'success');
+        }
+      });
+      
+      $('#btnClose').click(function() {
+        log('Closing widget...', 'info');
+        if (assistant) {
+          assistant.close();
+          log('Widget closed', 'success');
+        }
+      });
+      
+      $('#btnSendMessage').click(function() {
+        log('Sending test message...', 'info');
+        if (assistant) {
+          assistant.sendMessage('Hello from jQuery! Show me gaming laptops under $2000.');
+          log('Message sent', 'success');
+        }
+      });
+      
+      $('#btnGetSession').click(function() {
+        log('Getting session ID...', 'info');
+        if (assistant) {
+          const sessionId = assistant.getSessionId();
+          log(`Session ID: ${sessionId}`, 'success');
+          alert(`Session ID: ${sessionId}`);
+        }
+      });
+      
+      $('#btnClearHistory').click(function() {
+        log('Clearing history...', 'info');
+        if (assistant) {
+          assistant.clearHistory();
+          log('History cleared', 'success');
+        }
+      });
+      
+      $('#btnResetSession').click(function() {
+        log('Resetting session...', 'info');
+        if (assistant) {
+          assistant.resetSession();
+          log('Session reset', 'success');
+        }
+      });
+      
+      // Initialize
+      log('Initializing jQuery test site...', 'info');
+      renderProducts();
+      
+      // Initialize RAG Assistant
+      log('Initializing RAG Assistant widget...', 'info');
+      
+      try {
+        assistant = new RAGAssistant({
+          merchantId: 'test_jquery_site_2024',
+          apiKey: 'pk_test_jquery_key',
+          apiBaseUrl: 'http://localhost:3000',
+          
+          theme: {
+            primaryColor: '#3498db',
+            position: 'bottom-right'
+          },
+          
+          behavior: {
+            autoOpen: false,
+            greeting: 'Hi! 👋 Welcome to our gaming store. How can I help you today?',
+            placeholder: 'Ask about products...',
+            maxRecommendations: 3
+          },
+          
+          integration: {
+            addToCartCallback: function(product) {
+              log(`Widget callback: Add to cart - ${product.title}`, 'success');
+              
+              // Add to cart
+              cart.push({
+                id: Date.now(),
+                name: product.title,
+                price: parseFloat(product.price) || 0
+              });
+              updateCart();
+              
+              // Show notification
+              alert(`Added "${product.title}" to cart!\n\nPrice: $${product.price}`);
+            },
+            
+            checkoutCallback: function(items) {
+              log(`Widget callback: Checkout - ${items.length} items`, 'success');
+              alert(`Proceeding to checkout with ${items.length} item(s)`);
+            },
+            
+            analyticsCallback: function(event) {
+              log(`Widget callback: Analytics - ${event.event}`, 'info');
+            }
+          }
+        });
+        
+        log('Widget initialized successfully!', 'success');
+        
+      } catch (error) {
+        log(`Failed to initialize widget: ${error.message}`, 'error');
+        console.error('Widget initialization error:', error);
+      }
+    });
+  </script>
+</body>
+</html>

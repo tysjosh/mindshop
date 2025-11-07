@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Assistant - Embed Code Generator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+    
+    .header p {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+    
+    .content {
+      padding: 40px;
+    }
+    
+    .form-section {
+      margin-bottom: 30px;
+    }
+    
+    .form-section h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #555;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .form-group small {
+      display: block;
+      margin-top: 5px;
+      color: #999;
+      font-size: 12px;
+    }
+    
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+    }
+    
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 40px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+    }
+    
+    .code-output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 30px;
+      position: relative;
+      display: none;
+    }
+    
+    .code-output.show {
+      display: block;
+    }
+    
+    .code-output pre {
+      margin: 0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+    }
+    
+    .copy-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    
+    .copy-btn:hover {
+      background: #5568d3;
+    }
+    
+    .copy-btn.copied {
+      background: #4caf50;
+    }
+    
+    .success-message {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+    }
+    
+    .success-message.show {
+      display: block;
+    }
+    
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    .info-box strong {
+      color: #1976d2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎨 Embed Code Generator</h1>
+      <p>Generate your custom widget embed code in seconds</p>
+    </div>
+    
+    <div class="content">
+      <div class="info-box">
+        <strong>💡 Quick Start:</strong> Fill in your credentials below and we'll generate 
+        a ready-to-use embed code for your website.
+      </div>
+      
+      <form id="embedForm">
+        <!-- Required Settings -->
+        <div class="form-section">
+          <h2>1. Required Settings</h2>
+          
+          <div class="form-group">
+            <label for="merchantId">Merchant ID *</label>
+            <input 
+              type="text" 
+              id="merchantId" 
+              placeholder="e.g., acme_store_2024" 
+              required
+            >
+            <small>Find this in your dashboard</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="apiKey">API Key *</label>
+            <input 
+              type="text" 
+              id="apiKey" 
+              placeholder="e.g., pk_live_..." 
+              required
+            >
+            <small>Use pk_test_... for testing, pk_live_... for production</small>
+          </div>
+        </div>
+        
+        <!-- Theme Settings -->
+        <div class="form-section">
+          <h2>2. Theme Settings</h2>
+          
+          <div class="form-group">
+            <label for="primaryColor">Primary Color</label>
+            <input 
+              type="color" 
+              id="primaryColor" 
+              value="#667eea"
+            >
+            <small>Main color for buttons and headers</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="position">Widget Position</label>
+            <select id="position">
+              <option value="bottom-right">Bottom Right</option>
+              <option value="bottom-left">Bottom Left</option>
+              <option value="top-right">Top Right</option>
+              <option value="top-left">Top Left</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Behavior Settings -->
+        <div class="form-section">
+          <h2>3. Behavior Settings</h2>
+          
+          <div class="form-group checkbox-group">
+            <input type="checkbox" id="autoOpen">
+            <label for="autoOpen">Auto-open widget on page load</label>
+          </div>
+          
+          <div class="form-group">
+            <label for="greeting">Greeting Message</label>
+            <input 
+              type="text" 
+              id="greeting" 
+              placeholder="Hi! How can I help you today?"
+              value="Hi! 👋 How can I help you today?"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="maxRecommendations">Max Product Recommendations</label>
+            <select id="maxRecommendations">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Platform Integration -->
+        <div class="form-section">
+          <h2>4. Platform Integration (Optional)</h2>
+          
+          <div class="form-group">
+            <label for="platform">E-commerce Platform</label>
+            <select id="platform">
+              <option value="custom">Custom / Generic</option>
+              <option value="shopify">Shopify</option>
+              <option value="woocommerce">WooCommerce</option>
+              <option value="bigcommerce">BigCommerce</option>
+              <option value="magento">Magento</option>
+            </select>
+            <small>We'll include platform-specific cart integration code</small>
+          </div>
+        </div>
+        
+        <button type="submit" class="btn">
+          ✨ Generate Embed Code
+        </button>
+      </form>
+      
+      <div id="successMessage" class="success-message">
+        <strong>✅ Success!</strong> Your embed code is ready. Copy it and paste it into your website before the closing &lt;/body&gt; tag.
+      </div>
+      
+      <div id="codeOutput" class="code-output">
+        <button id="copyBtn" class="copy-btn">Copy Code</button>
+        <pre id="generatedCode"></pre>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const form = document.getElementById('embedForm');
+    const codeOutput = document.getElementById('codeOutput');
+    const generatedCode = document.getElementById('generatedCode');
+    const copyBtn = document.getElementById('copyBtn');
+    const successMessage = document.getElementById('successMessage');
+    
+    // Platform-specific cart integration code
+    const platformIntegrations = {
+      custom: `addToCartCallback: (product) => {
+        // Your custom add to cart logic
+        fetch('/api/cart/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId: product.id,
+            quantity: 1
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          alert('Added to cart!');
+        });
+      }`,
+      
+      shopify: `addToCartCallback: (product) => {
+        // Shopify AJAX Cart API
+        fetch('/cart/add.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: product.variantId,
+            quantity: 1
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          window.location.href = '/cart';
+        });
+      }`,
+      
+      woocommerce: `addToCartCallback: (product) => {
+        // WooCommerce AJAX Add to Cart
+        jQuery.post(wc_add_to_cart_params.ajax_url, {
+          action: 'woocommerce_add_to_cart',
+          product_id: product.id,
+          quantity: 1
+        }, function(response) {
+          window.location.href = wc_cart_params.cart_url;
+        });
+      }`,
+      
+      bigcommerce: `addToCartCallback: (product) => {
+        // BigCommerce Storefront API
+        fetch('/api/storefront/carts', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lineItems: [{ productId: product.id, quantity: 1 }]
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          window.location.href = '/cart.php';
+        });
+      }`,
+      
+      magento: `addToCartCallback: (product) => {
+        // Magento 2 AJAX Add to Cart
+        require(['jquery'], function($) {
+          $.ajax({
+            url: '/checkout/cart/add',
+            type: 'POST',
+            data: { product: product.id, qty: 1 },
+            success: function() {
+              window.location.href = '/checkout/cart';
+            }
+          });
+        });
+      }`
+    };
+    
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const merchantId = document.getElementById('merchantId').value;
+      const apiKey = document.getElementById('apiKey').value;
+      const primaryColor = document.getElementById('primaryColor').value;
+      const position = document.getElementById('position').value;
+      const autoOpen = document.getElementById('autoOpen').checked;
+      const greeting = document.getElementById('greeting').value;
+      const maxRecommendations = document.getElementById('maxRecommendations').value;
+      const platform = document.getElementById('platform').value;
+      
+      const code = `<script>
+  (function(w,d,s,o,f,js,fjs){
+    w['RAGAssistant']=o;w[o]=w[o]||function(){(w[o].q=w[o].q||[]).push(arguments)};
+    js=d.createElement(s),fjs=d.getElementsByTagName(s)[0];
+    js.id=o;js.src=f;js.async=1;fjs.parentNode.insertBefore(js,fjs);
+  }(window,document,'script','ra','https://cdn.rag-assistant.com/v1/widget.js'));
+  
+  ra('init', {
+    merchantId: '${merchantId}',
+    apiKey: '${apiKey}',
+    
+    theme: {
+      primaryColor: '${primaryColor}',
+      position: '${position}'
+    },
+    
+    behavior: {
+      autoOpen: ${autoOpen},
+      greeting: '${greeting.replace(/'/g, "\\'")}',
+      maxRecommendations: ${maxRecommendations}
+    },
+    
+    integration: {
+      ${platformIntegrations[platform]},
+      
+      checkoutCallback: (items) => {
+        // Redirect to checkout
+        window.location.href = '/checkout';
+      },
+      
+      analyticsCallback: (event) => {
+        // Track with your analytics
+        console.log('RAG Assistant Event:', event);
+      }
+    }
+  });
+</script>`;
+      
+      generatedCode.textContent = code;
+      codeOutput.classList.add('show');
+      successMessage.classList.add('show');
+      
+      // Scroll to code
+      codeOutput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+    
+    copyBtn.addEventListener('click', () => {
+      const code = generatedCode.textContent;
+      
+      navigator.clipboard.writeText(code).then(() => {
+        copyBtn.textContent = '✓ Copied!';
+        copyBtn.classList.add('copied');
+        
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy Code';
+          copyBtn.classList.remove('copied');
+        }, 2000);
+      });
+    });
+  </script>
+</body>
+</html>

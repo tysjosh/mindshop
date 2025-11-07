@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { BedrockAgentService, SessionManager, createBedrockAgentService, createSessionManager } from '../../services';
 import { AuditLogRepository } from '../../repositories/AuditLogRepository';
 import { createDatabaseConnection } from '../../database/connection';
+import { ApiResponse } from '../../types';
+import { sendSuccess, sendError, getRequestId } from '../utils/responseFormatter';
 import { v4 as uuidv4 } from 'uuid';
 
 export class BedrockAgentController {
@@ -17,15 +19,13 @@ export class BedrockAgentController {
    * Process chat request through Bedrock Agent
    */
   async chat(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { query, merchant_id, user_id, session_id, user_context } = req.body;
 
       // Validate required fields
       if (!query || !merchant_id || !user_id) {
-        res.status(400).json({
-          error: 'Missing required fields',
-          required: ['query', 'merchant_id', 'user_id'],
-        });
+        sendError(res, 'Missing required fields: query, merchant_id, user_id', 400, requestId);
         return;
       }
 
@@ -38,17 +38,11 @@ export class BedrockAgentController {
         userContext: user_context,
       });
 
-      res.json({
-        success: true,
-        data: response,
-      });
+      sendSuccess(res, response, 200, requestId);
 
     } catch (error) {
       console.error('Chat processing error:', error);
-      res.status(500).json({
-        error: 'Chat processing failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      sendError(res, error instanceof Error ? error.message : 'Chat processing failed', 500, requestId);
     }
   }
 
@@ -56,15 +50,13 @@ export class BedrockAgentController {
    * Get session history
    */
   async getSessionHistory(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { sessionId } = req.params;
       const { merchant_id } = req.query;
 
       if (!sessionId || !merchant_id) {
-        res.status(400).json({
-          error: 'Missing required parameters',
-          required: ['sessionId', 'merchant_id'],
-        });
+        sendError(res, 'Missing required parameters: sessionId, merchant_id', 400, requestId);
         return;
       }
 
@@ -73,22 +65,16 @@ export class BedrockAgentController {
         merchant_id as string
       );
 
-      res.json({
-        success: true,
-        data: {
-          session_id: sessionId,
-          merchant_id,
-          conversation_history: history,
-          total_messages: history.length,
-        },
-      });
+      sendSuccess(res, {
+        session_id: sessionId,
+        merchant_id,
+        conversation_history: history,
+        total_messages: history.length,
+      }, 200, requestId);
 
     } catch (error) {
       console.error('Session history error:', error);
-      res.status(500).json({
-        error: 'Failed to retrieve session history',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      sendError(res, error instanceof Error ? error.message : 'Failed to retrieve session history', 500, requestId);
     }
   }
 
@@ -96,6 +82,7 @@ export class BedrockAgentController {
    * Create new session
    */
   async createSession(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
     try {
       const { merchant_id, user_id, context } = req.body;
 

@@ -1,0 +1,69 @@
+{
+  "environments": {
+    "development": {
+      "stackName": "rag-widget-cdn-development",
+      "bucketPrefix": "rag-assistant-widget-development",
+      "cdnDomain": null,
+      "certificateArn": null,
+      "region": "us-east-1",
+      "cacheMaxAge": 3600,
+      "description": "Development environment for testing widget changes"
+    },
+    "staging": {
+      "stackName": "rag-widget-cdn-staging",
+      "bucketPrefix": "rag-assistant-widget-staging",
+      "cdnDomain": "cdn-staging.rag-assistant.com",
+      "certificateArn": null,
+      "region": "us-east-1",
+      "cacheMaxAge": 86400,
+      "description": "Staging environment for pre-production testing"
+    },
+    "production": {
+      "stackName": "rag-widget-cdn-production",
+      "bucketPrefix": "rag-assistant-widget-production",
+      "cdnDomain": "cdn.rag-assistant.com",
+      "certificateArn": null,
+      "region": "us-east-1",
+      "cacheMaxAge": 604800,
+      "description": "Production environment for live merchant integrations"
+    }
+  },
+  "cdn": {
+    "priceClass": "PRICE_CLASS_100",
+    "httpVersion": "http2and3",
+    "minimumProtocolVersion": "TLSv1.2_2021",
+    "enableCompression": true,
+    "enableLogging": true,
+    "logBucket": null,
+    "logPrefix": "widget-cdn-logs/"
+  },
+  "cors": {
+    "allowedOrigins": ["*"],
+    "allowedMethods": ["GET", "HEAD", "OPTIONS"],
+    "allowedHeaders": ["*"],
+    "maxAge": 3600
+  },
+  "versioning": {
+    "enabled": true,
+    "retentionDays": 30,
+    "strategy": "semantic"
+  },
+  "deployment": {
+    "autoInvalidate": true,
+    "invalidationPaths": ["/v1/*", "/widget.js"],
+    "uploadConcurrency": 10,
+    "retryAttempts": 3
+  },
+  "monitoring": {
+    "enableMetrics": true,
+    "enableAlarms": true,
+    "alarmEmail": null,
+    "metrics": [
+      "Requests",
+      "BytesDownloaded",
+      "ErrorRate",
+      "4xxErrorRate",
+      "5xxErrorRate"
+    ]
+  }
+}

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Assistant - Analytics Integration Example</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .analytics-dashboard {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .metric {
+      display: inline-block;
+      background: white;
+      padding: 15px;
+      margin: 10px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .metric-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+    }
+    .metric-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #007bff;
+    }
+    .event-log {
+      background: white;
+      padding: 15px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .event-item {
+      padding: 5px;
+      border-bottom: 1px solid #eee;
+    }
+    .event-type {
+      font-weight: bold;
+      color: #007bff;
+    }
+    .controls {
+      margin: 20px 0;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 4px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>RAG Assistant - Analytics Integration Example</h1>
+  
+  <div class="analytics-dashboard">
+    <h2>Real-Time Analytics Dashboard</h2>
+    <div id="metrics">
+      <div class="metric">
+        <div class="metric-label">Total Events</div>
+        <div class="metric-value" id="total-events">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Messages Sent</div>
+        <div class="metric-value" id="messages-sent">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Messages Received</div>
+        <div class="metric-value" id="messages-received">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Products Clicked</div>
+        <div class="metric-value" id="products-clicked">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Add to Cart</div>
+        <div class="metric-value" id="add-to-cart">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Avg Response Time</div>
+        <div class="metric-value" id="avg-response-time">0ms</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Errors</div>
+        <div class="metric-value" id="errors">0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button onclick="openWidget()">Open Widget</button>
+    <button onclick="closeWidget()">Close Widget</button>
+    <button onclick="refreshMetrics()">Refresh Metrics</button>
+    <button onclick="clearEventLog()">Clear Event Log</button>
+  </div>
+
+  <div class="analytics-dashboard">
+    <h2>Event Log</h2>
+    <div class="event-log" id="event-log">
+      <div class="event-item">Waiting for events...</div>
+    </div>
+  </div>
+
+  <script src="widget.js"></script>
+  <script>
+    // Initialize event log
+    const eventLog = [];
+    
+    // Analytics callback function
+    function handleAnalyticsEvent(event) {
+      console.log('[Analytics]', event);
+      
+      // Add to event log
+      eventLog.push(event);
+      updateEventLog();
+      
+      // Update metrics
+      updateMetrics();
+      
+      // Send to your analytics service (e.g., Google Analytics, Mixpanel, etc.)
+      if (typeof gtag !== 'undefined') {
+        gtag('event', event.event, {
+          event_category: 'RAG_Widget',
+          event_label: event.query || event.productId || '',
+          value: event.responseTime || 0
+        });
+      }
+      
+      // Send to custom analytics endpoint
+      fetch('/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(event)
+      }).catch(err => console.error('Failed to send analytics:', err));
+    }
+    
+    // Initialize RAG Assistant with analytics callback
+    const assistant = new RAGAssistant({
+      // ⚠️ REPLACE WITH YOUR CREDENTIALS - Get them from your dashboard
+      merchantId: 'demo_store_2024',
+      apiKey: 'pk_test_279f4099f6e3e961f8fbf465680baece06a4f361e134563f046bad8820d41cd8',
+      apiBaseUrl: 'http://localhost:3000',
+      theme: {
+        primaryColor: '#007bff',
+        position: 'bottom-right'
+      },
+      behavior: {
+        autoOpen: false,
+        greeting: 'Hi! How can I help you today?'
+      },
+      integration: {
+        analyticsCallback: handleAnalyticsEvent,
+        addToCartCallback: (product) => {
+          console.log('Add to cart:', product);
+          assistant.trackAddToCart(product.id);
+          alert(`Added ${product.title} to cart!`);
+        },
+        checkoutCallback: (items) => {
+          console.log('Checkout:', items);
+          assistant.trackCheckout(items.length);
+          alert(`Proceeding to checkout with ${items.length} items!`);
+        }
+      }
+    });
+    
+    // Helper functions
+    function openWidget() {
+      assistant.open();
+    }
+    
+    function closeWidget() {
+      assistant.close();
+    }
+    
+    function refreshMetrics() {
+      updateMetrics();
+    }
+    
+    function clearEventLog() {
+      eventLog.length = 0;
+      updateEventLog();
+    }
+    
+    function updateMetrics() {
+      const summary = assistant.getAnalyticsSummary();
+      
+      document.getElementById('total-events').textContent = summary.totalEvents;
+      document.getElementById('messages-sent').textContent = summary.messagesSent;
+      document.getElementById('messages-received').textContent = summary.messagesReceived;
+      document.getElementById('products-clicked').textContent = summary.productsClicked;
+      document.getElementById('add-to-cart').textContent = summary.addToCartCount;
+      document.getElementById('avg-response-time').textContent = summary.avgResponseTime + 'ms';
+      document.getElementById('errors').textContent = summary.errors;
+    }
+    
+    function updateEventLog() {
+      const logElement = document.getElementById('event-log');
+      
+      if (eventLog.length === 0) {
+        logElement.innerHTML = '<div class="event-item">No events yet...</div>';
+        return;
+      }
+      
+      // Show last 50 events
+      const recentEvents = eventLog.slice(-50).reverse();
+      
+      logElement.innerHTML = recentEvents.map(event => {
+        const timestamp = new Date(event.timestamp).toLocaleTimeString();
+        const metadata = event.metadata ? JSON.stringify(event.metadata) : '';
+        
+        return `
+          <div class="event-item">
+            <span class="event-type">${event.event}</span>
+            <span style="color: #999; margin-left: 10px;">${timestamp}</span>
+            ${event.query ? `<br><span style="color: #666;">Query: ${event.query}</span>` : ''}
+            ${event.productId ? `<br><span style="color: #666;">Product: ${event.productId}</span>` : ''}
+            ${event.responseTime ? `<br><span style="color: #666;">Response Time: ${event.responseTime}ms</span>` : ''}
+            ${metadata ? `<br><span style="color: #999; font-size: 10px;">${metadata}</span>` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+    
+    // Update metrics every 2 seconds
+    setInterval(updateMetrics, 2000);
+    
+    // Initial metrics update
+    setTimeout(updateMetrics, 1000);
+  </script>
+</body>
+</html>

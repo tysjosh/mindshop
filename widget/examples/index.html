@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Assistant - Integration Examples</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      color: white;
+      padding: 60px 20px;
+    }
+    
+    .header h1 {
+      font-size: 48px;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    
+    .header p {
+      font-size: 20px;
+      opacity: 0.9;
+    }
+    
+    .examples-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 30px;
+      margin-top: 40px;
+    }
+    
+    .example-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s, box-shadow 0.3s;
+      cursor: pointer;
+    }
+    
+    .example-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+    
+    .example-header {
+      padding: 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-align: center;
+    }
+    
+    .example-header.react {
+      background: linear-gradient(135deg, #61dafb 0%, #21a1c4 100%);
+    }
+    
+    .example-header.vue {
+      background: linear-gradient(135deg, #42b883 0%, #35495e 100%);
+    }
+    
+    .example-header.angular {
+      background: linear-gradient(135deg, #dd0031 0%, #c3002f 100%);
+    }
+    
+    .example-header.mobile {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+    }
+    
+    .example-header.callbacks {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .example-header.ecommerce {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .example-header.async {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+    
+    .example-header.generator {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    
+    .example-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+    
+    .example-header h2 {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+    
+    .example-header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .example-content {
+      padding: 30px;
+    }
+    
+    .example-content p {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    
+    .example-features {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 20px;
+    }
+    
+    .example-features li {
+      padding: 8px 0;
+      color: #555;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .example-features li::before {
+      content: "✓";
+      color: #4caf50;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    
+    .example-link {
+      display: block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-align: center;
+      padding: 12px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    
+    .example-link:hover {
+      opacity: 0.9;
+    }
+    
+    .category-section {
+      margin-top: 60px;
+    }
+    
+    .category-title {
+      color: white;
+      font-size: 32px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .info-banner {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-top: 40px;
+      text-align: center;
+    }
+    
+    .info-banner h3 {
+      color: #667eea;
+      font-size: 24px;
+      margin-bottom: 15px;
+    }
+    
+    .info-banner p {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    
+    .info-banner a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    
+    .info-banner a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 RAG Assistant Integration Examples</h1>
+      <p>Choose an example to see how to integrate the widget into your application</p>
+    </div>
+    
+    <!-- Getting Started -->
+    <div class="category-section">
+      <h2 class="category-title">Getting Started</h2>
+      <div class="examples-grid">
+        <div class="example-card" onclick="window.location.href='basic.html'">
+          <div class="example-header">
+            <div class="example-icon">🎯</div>
+            <h2>Basic Integration</h2>
+            <p>Simple HTML example</p>
+          </div>
+          <div class="example-content">
+            <p>The simplest way to get started with the RAG Assistant widget.</p>
+            <ul class="example-features">
+              <li>Direct script tag</li>
+              <li>Minimal configuration</li>
+              <li>Perfect for beginners</li>
+              <li>Works with any website</li>
+            </ul>
+            <a href="basic.html" class="example-link">View Example →</a>
+          </div>
+        </div>
+        
+        <div class="example-card" onclick="window.location.href='embed-async.html'">
+          <div class="example-header async">
+            <div class="example-icon">⚡</div>
+            <h2>Async Loading</h2>
+            <p>Recommended method</p>
+          </div>
+          <div class="example-content">
+            <p>Load the widget asynchronously without blocking your page.</p>
+            <ul class="example-features">
+              <li>Faster page load</li>
+              <li>Better SEO</li>
+              <li>Non-blocking</li>
+              <li>Production-ready</li>
+            </ul>
+            <a href="embed-async.html" class="example-link">View Example →</a>
+          </div>
+        </div>
+        
+        <div class="example-card" onclick="window.location.href='embed-generator.html'">
+          <div class="example-header generator">
+            <div class="example-icon">🎨</div>
+            <h2>Code Generator</h2>
+            <p>Interactive tool</p>
+          </div>
+          <div class="example-content">
+            <p>Generate custom embed code with visual customization.</p>
+            <ul class="example-features">
+              <li>Visual customizer</li>
+              <li>Live preview</li>
+              <li>Platform-specific code</li>
+              <li>Copy & paste ready</li>
+            </ul>
+            <a href="embed-generator.html" class="example-link">View Example →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Framework Integration -->
+    <div class="category-section">
+      <h2 class="category-title">Framework Integration</h2>
+      <div class="examples-grid">
+        <div class="example-card" onclick="window.location.href='react-integration.html'">
+          <div class="example-header react">
+            <div class="example-icon">⚛️</div>
+            <h2>React Integration</h2>
+            <p>Hooks, Context, Redux</p>
+          </div>
+          <div class="example-content">
+            <p>Complete guide for integrating with React applications.</p>
+            <ul class="example-features">
+              <li>useEffect hook</li>
+              <li>Custom hooks</li>
+              <li>Redux integration</li>
+              <li>Context API</li>
+              <li>TypeScript support</li>
+            </ul>
+            <a href="react-integration.html" class="example-link">View Example →</a>
+          </div>
+        </div>
+        
+        <div class="example-card" onclick="window.location.href='vue-integration.html'">
+          <div class="example-header vue">
+            <div class="example-icon">🖖</div>
+            <h2>Vue Integration</h2>
+            <p>Composition & Options API</p>
+          </div>
+          <div class="example-content">
+            <p>Complete guide for integrating with Vue applications.</p>
+            <ul class="example-features">
+              <li>Composition API</li>
+              <li>Options API</li>
+              <li>Vuex integration</li>
+              <li>Pinia integration</li>
+              <li>Composables</li>
+            </ul>
+            <a href="vue-integration.html" class="example-link">View Example →</a>
+          </div>
+        </div>
+        
+        <div class="example-card" onclick="window.location.href='angular-integration.html'">
+          <div class="example-header angular">
+            <div class="example-icon">🅰️</div>
+            <h2>Angular Integration</h2>
+            <p>Services & NgRx</p>
+          </div>
+          <div class="example-content">
+            <p>Complete guide for integrating with Angular applications.</p>
+            <ul class="example-features">
+              <li>Component integration</li>
+              <li>Angular services</li>
+              <li>NgRx integration</li>
+              <li>Dependency injection</li>
+              <li>TypeScript support</li>
+            </ul>
+            <a href="angular-integration.html" class="example-link">View Example →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- E-commerce Platforms -->
+    <div class="category-section">
+      <h2 class="category-title">E-commerce Platforms</h2>
+      <div class="examples-grid">
+        <div class="example-card" onclick="window.location.href='embed-ecommerce.html'">
+          <div class="example-header ecommerce">
+            <div class="example-icon">🛍️</div>
+            <h2>Platform Integration</h2>
+            <p>Shopify, WooCommerce, etc.</p>
+          </div>
+          <div class="example-content">
+            <p>Ready-to-use code for popular e-commerce platforms.</p>
+            <ul class="example-features">
+              <li>Shopify integration</li>
+              <li>WooCommerce integration</li>
+              <li>BigCommerce integration</li>
+              <li>Magento integration</li>
+              <li>Custom platforms</li>
+            </ul>
+            <a href="embed-ecommerce.html" class="example-link">View Example →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Advanced Features -->
+    <div class="category-section">
+      <h2 class="category-title">Advanced Features</h2>
+      <div class="examples-grid">
+        <div class="example-card" onclick="window.location.href='advanced-callbacks.html'">
+          <div class="example-header callbacks">
+            <div class="example-icon">🔧</div>
+            <h2>Advanced Callbacks</h2>
+            <p>All events & callbacks</p>
+          </div>
+          <div class="example-content">
+            <p>Complete guide to all widget callbacks and events.</p>
+            <ul class="example-features">
+              <li>Cart callbacks</li>
+              <li>Analytics integration</li>
+              <li>Error handling</li>
+              <li>Message events</li>
+              <li>Widget state events</li>
+            </ul>
+            <a href="advanced-callbacks.html" class="example-link">View Example →</a>
+          </div>
+        </div>
+        
+        <div class="example-card" onclick="window.location.href='mobile-responsive.html'">
+          <div class="example-header mobile">
+            <div class="example-icon">📱</div>
+            <h2>Mobile Responsive</h2>
+            <p>All screen sizes</p>
+          </div>
+          <div class="example-content">
+            <p>See how the widget adapts to different screen sizes.</p>
+            <ul class="example-features">
+              <li>Mobile optimization</li>
+              <li>Tablet support</li>
+              <li>Desktop layout</li>
+              <li>Touch gestures</li>
+              <li>Performance optimized</li>
+            </ul>
+            <a href="mobile-responsive.html" class="example-link">View Example →</a>
+          </div>
+        </div>
+        
+        <div class="example-card" onclick="window.location.href='embed-test.html'">
+          <div class="example-header">
+            <div class="example-icon">🧪</div>
+            <h2>Testing & Debug</h2>
+            <p>Test your integration</p>
+          </div>
+          <div class="example-content">
+            <p>Test page with debugging tools and status monitoring.</p>
+            <ul class="example-features">
+              <li>Load status tracking</li>
+              <li>Console logging</li>
+              <li>Test controls</li>
+              <li>Error detection</li>
+              <li>Performance metrics</li>
+            </ul>
+            <a href="embed-test.html" class="example-link">View Example →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Additional Examples -->
+    <div class="category-section">
+      <h2 class="category-title">Additional Examples</h2>
+      <div class="examples-grid">
+        <div class="example-card" onclick="window.location.href='chatwidget-demo.html'">
+          <div class="example-header">
+            <div class="example-icon">💬</div>
+            <h2>ChatWidget Demo</h2>
+            <p>Component showcase</p>
+          </div>
+          <div class="example-content">
+            <p>Demonstration of the ChatWidget component features.</p>
+            <ul class="example-features">
+              <li>All UI components</li>
+              <li>Feature showcase</li>
+              <li>Implementation status</li>
+            </ul>
+            <a href="chatwidget-demo.html" class="example-link">View Example →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Documentation Links -->
+    <div class="info-banner">
+      <h3>📚 Need More Help?</h3>
+      <p>
+        Check out our comprehensive documentation for detailed guides, API reference, 
+        and best practices.
+      </p>
+      <p>
+        <a href="../EMBED_GUIDE.md">Complete Embed Guide</a> • 
+        <a href="../INTEGRATION_QUICKSTART.md">Quick Start Guide</a> • 
+        <a href="../README.md">Widget Documentation</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>

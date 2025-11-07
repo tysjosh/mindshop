@@ -4,3 +4,16 @@ export * from './DocumentRepository';
 export * from './UserSessionRepository';
 export * from './AuditLogRepository';
 export * from './TransactionRepository';
+
+// Merchant Platform Repositories
+export * from './MerchantRepository';
+export * from './MerchantSettingsRepository';
+export * from './ApiKeyRepository';
+export * from './ApiKeyUsageRepository';
+export * from './MerchantUsageRepository';
+export * from './UsageLimitsRepository';
+export * from './WebhookRepository';
+export * from './WebhookDeliveryRepository';
+export * from './BillingInfoRepository';
+export * from './InvoiceRepository';
+export * from './PaymentMethodRepository';

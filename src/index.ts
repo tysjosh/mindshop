@@ -2,17 +2,20 @@ import 'dotenv/config';
 import { createAPIGatewayApp } from './api/app';
 import { config } from './config';
 import { checkConnection } from './database';
+import { getJobScheduler } from './jobs/scheduler';
+import { initializePerformanceServices, cleanupPerformanceServices, setupGracefulShutdown, validateStartupConfig } from './api/startup';
 
 // Create API Gateway application with configuration
 const apiApp = createAPIGatewayApp({
   port: config.port,
   environment: config.nodeEnv,
   corsOrigins: config.security.corsOrigins,
-  enableMetrics: process.env.ENABLE_METRICS === 'true',
-  enableCognito: process.env.ENABLE_COGNITO === 'true',
-  cognitoUserPoolId: process.env.COGNITO_USER_POOL_ID,
-  cognitoClientId: process.env.COGNITO_CLIENT_ID,
-  awsRegion: config.aws.region,
+  enableMetrics: config.monitoring.metricsEnabled,
+  enableCognito: config.cognito.enabled,
+  cognitoUserPoolId: config.cognito.userPoolId,
+  cognitoClientId: config.cognito.clientId,
+  awsRegion: config.cognito.region,
+  enableMockAuth: config.cognito.enableMockAuth,
 });
 
 // Get the Express app instance
@@ -21,6 +24,10 @@ const app = apiApp.getApp();
 // Start the server with enhanced initialization
 async function startServer() {
   try {
+    // Validate configuration at startup
+    console.log('🔧 Validating configuration...');
+    validateStartupConfig();
+    
     // Check database connection
     console.log('🔍 Checking database connection...');
     const dbConnected = await checkConnection();
@@ -33,13 +40,26 @@ async function startServer() {
     // Start the API Gateway server
     apiApp.start();
 
-    // Log configuration
-    console.log('⚙️  Configuration:');
-    console.log(`   - Environment: ${config.nodeEnv}`);
-    console.log(`   - AWS Region: ${config.aws.region}`);
-    console.log(`   - CORS Origins: ${config.security.corsOrigins.join(', ')}`);
-    console.log(`   - Cognito Auth: ${process.env.ENABLE_COGNITO === 'true' ? '✅ Enabled' : '❌ Disabled'}`);
-    console.log(`   - Metrics: ${process.env.ENABLE_METRICS === 'true' ? '✅ Enabled' : '❌ Disabled'}`);
+    // Initialize performance optimization services
+    if (process.env.ENABLE_PERFORMANCE_OPTIMIZATION !== 'false') {
+      console.log('⚡ Initializing performance optimization services...');
+      await initializePerformanceServices();
+      console.log('✅ Performance optimization services initialized');
+    }
+
+    // Start background job scheduler if enabled
+    if (process.env.ENABLE_JOB_SCHEDULER === 'true') {
+      console.log('🔄 Starting background job scheduler...');
+      const scheduler = getJobScheduler({
+        usageAggregationInterval: parseInt(process.env.USAGE_AGGREGATION_INTERVAL || '3600000', 10), // 1 hour default
+        enableUsageAggregation: process.env.ENABLE_USAGE_AGGREGATION !== 'false', // enabled by default
+      });
+      scheduler.start();
+      console.log('✅ Background job scheduler started');
+    }
+
+    // Setup graceful shutdown handlers
+    setupGracefulShutdown();
 
   } catch (error) {
     console.error('❌ Failed to start server:', error);
@@ -47,47 +67,7 @@ async function startServer() {
   }
 }
 
-// Graceful shutdown handling
-const gracefulShutdown = (signal: string) => {
-  console.log(`\n🛑 ${signal} received, shutting down gracefully...`);
-  
-  // Close server
-  const server = app.listen();
-  if (server) {
-    server.close(() => {
-      console.log('✅ HTTP server closed');
-      
-      // Close database connections
-      // Note: Add database cleanup here if needed
-      
-      console.log('👋 Process terminated gracefully');
-      process.exit(0);
-    });
-
-    // Force close after 10 seconds
-    setTimeout(() => {
-      console.error('❌ Could not close connections in time, forcefully shutting down');
-      process.exit(1);
-    }, 10000);
-  } else {
-    process.exit(0);
-  }
-};
-
-// Handle shutdown signals
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
-});
+// Note: Graceful shutdown is now handled by setupGracefulShutdown() in startup.ts
 
 // Start the server
 startServer();

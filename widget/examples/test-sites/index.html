@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Assistant Widget - Test Sites</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+    
+    .header h1 {
+      font-size: 48px;
+      margin-bottom: 15px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .header p {
+      font-size: 20px;
+      opacity: 0.9;
+    }
+    
+    .intro {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .intro h2 {
+      color: #333;
+      margin-bottom: 15px;
+    }
+    
+    .intro p {
+      color: #666;
+      line-height: 1.8;
+      margin-bottom: 15px;
+    }
+    
+    .intro ul {
+      color: #666;
+      line-height: 2;
+      margin-left: 20px;
+    }
+    
+    .test-sites {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 25px;
+    }
+    
+    .test-site-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .test-site-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    }
+    
+    .test-site-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .test-site-icon {
+      font-size: 64px;
+      margin-bottom: 15px;
+    }
+    
+    .test-site-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .test-site-subtitle {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .test-site-body {
+      padding: 25px;
+    }
+    
+    .test-site-description {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    
+    .test-features {
+      list-style: none;
+      margin-bottom: 20px;
+    }
+    
+    .test-features li {
+      padding: 8px 0;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .test-features li:before {
+      content: '✓';
+      color: #46b450;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    
+    .test-site-button {
+      display: block;
+      width: 100%;
+      background: #667eea;
+      color: white;
+      text-align: center;
+      padding: 15px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+    
+    .test-site-button:hover {
+      background: #5568d3;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    
+    .status-badge.ready {
+      background: #46b450;
+      color: white;
+    }
+    
+    .status-badge.testing {
+      background: #ffa500;
+      color: white;
+    }
+    
+    .instructions {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-top: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .instructions h2 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    
+    .instructions ol {
+      color: #666;
+      line-height: 2;
+      margin-left: 20px;
+    }
+    
+    .instructions code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+    
+    .checklist {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    
+    .checklist h3 {
+      color: #333;
+      margin-bottom: 15px;
+    }
+    
+    .checklist ul {
+      list-style: none;
+      color: #666;
+      line-height: 2;
+    }
+    
+    .checklist li:before {
+      content: '☐ ';
+      margin-right: 8px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🧪 Widget Test Sites</h1>
+      <p>Comprehensive testing environments for RAG Assistant widget integration</p>
+    </div>
+
+    <div class="intro">
+      <h2>📋 About These Test Sites</h2>
+      <p>
+        These test sites simulate real-world integration scenarios for the RAG Assistant widget.
+        Each site represents a different platform or framework, allowing you to verify that the
+        widget works correctly across various environments.
+      </p>
+      <p><strong>What's being tested:</strong></p>
+      <ul>
+        <li>Widget loading and initialization</li>
+        <li>Programmatic control (open, close, send message, etc.)</li>
+        <li>Callback integration (add to cart, checkout, analytics)</li>
+        <li>Visual appearance and responsiveness</li>
+        <li>Error handling and edge cases</li>
+        <li>Performance and load times</li>
+      </ul>
+    </div>
+
+    <div class="test-sites">
+      <div class="test-site-card">
+        <div class="test-site-header">
+          <div class="test-site-icon">🌐</div>
+          <div class="test-site-title">
+            Vanilla HTML
+            <span class="status-badge ready">READY</span>
+          </div>
+          <div class="test-site-subtitle">Pure HTML/CSS/JS</div>
+        </div>
+        <div class="test-site-body">
+          <p class="test-site-description">
+            Tests the widget in a pure HTML environment with no frameworks or build tools.
+            This is the most basic integration scenario.
+          </p>
+          <ul class="test-features">
+            <li>Direct script tag integration</li>
+            <li>No dependencies</li>
+            <li>Simple product catalog</li>
+            <li>All widget controls</li>
+            <li>Console logging</li>
+          </ul>
+          <a href="vanilla-html.html" class="test-site-button" target="_blank">
+            Open Test Site →
+          </a>
+        </div>
+      </div>
+
+      <div class="test-site-card">
+        <div class="test-site-header">
+          <div class="test-site-icon">💎</div>
+          <div class="test-site-title">
+            jQuery Site
+            <span class="status-badge ready">READY</span>
+          </div>
+          <div class="test-site-subtitle">jQuery-based E-commerce</div>
+        </div>
+        <div class="test-site-body">
+          <p class="test-site-description">
+            Tests the widget with jQuery, one of the most popular JavaScript libraries.
+            Simulates a typical jQuery-based e-commerce site.
+          </p>
+          <ul class="test-features">
+            <li>jQuery integration</li>
+            <li>Dynamic product loading</li>
+            <li>Shopping cart functionality</li>
+            <li>Event handling</li>
+            <li>Real-time updates</li>
+          </ul>
+          <a href="jquery-site.html" class="test-site-button" target="_blank">
+            Open Test Site →
+          </a>
+        </div>
+      </div>
+
+      <div class="test-site-card">
+        <div class="test-site-header">
+          <div class="test-site-icon">🛒</div>
+          <div class="test-site-title">
+            WordPress/WooCommerce
+            <span class="status-badge ready">READY</span>
+          </div>
+          <div class="test-site-subtitle">WooCommerce Simulation</div>
+        </div>
+        <div class="test-site-body">
+          <p class="test-site-description">
+            Simulates a WordPress/WooCommerce store with authentic styling and structure.
+            Tests widget integration in the most popular e-commerce platform.
+          </p>
+          <ul class="test-features">
+            <li>WooCommerce-style UI</li>
+            <li>Product grid layout</li>
+            <li>WordPress admin bar</li>
+            <li>Breadcrumb navigation</li>
+            <li>Authentic styling</li>
+          </ul>
+          <a href="wordpress-simulation.html" class="test-site-button" target="_blank">
+            Open Test Site →
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="instructions">
+      <h2>🚀 How to Run Tests</h2>
+      <ol>
+        <li>Make sure you've built the widget: <code>cd widget && npm run build</code></li>
+        <li>Start a local server (if needed): <code>npm run serve</code></li>
+        <li>Click on any test site card above to open it in a new tab</li>
+        <li>Test the widget functionality using the provided controls</li>
+        <li>Check the console output for any errors or warnings</li>
+        <li>Verify callbacks are working (add to cart, checkout, etc.)</li>
+        <li>Test on different browsers (Chrome, Firefox, Safari, Edge)</li>
+        <li>Test on different devices (desktop, tablet, mobile)</li>
+      </ol>
+
+      <div class="checklist">
+        <h3>✅ Testing Checklist</h3>
+        <ul>
+          <li>Widget loads without errors</li>
+          <li>Widget appears in correct position</li>
+          <li>Open/close functionality works</li>
+          <li>Messages can be sent</li>
+          <li>Product recommendations appear</li>
+          <li>Add to cart callback fires</li>
+          <li>Checkout callback fires</li>
+          <li>Analytics events are tracked</li>
+          <li>Session management works</li>
+          <li>History can be cleared</li>
+          <li>Session can be reset</li>
+          <li>Widget is responsive on mobile</li>
+          <li>No console errors</li>
+          <li>Performance is acceptable</li>
+        </ul>
+      </div>
+
+      <h2>🐛 Reporting Issues</h2>
+      <p>
+        If you find any issues during testing, please document:
+      </p>
+      <ul>
+        <li>Which test site you were using</li>
+        <li>What action you performed</li>
+        <li>What you expected to happen</li>
+        <li>What actually happened</li>
+        <li>Any console errors or warnings</li>
+        <li>Browser and version</li>
+        <li>Device type (desktop/mobile)</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

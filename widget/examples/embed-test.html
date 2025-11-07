@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Assistant - Embed Script Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 40px;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .status {
+      background: #f0f0f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .status-item:last-child {
+      border-bottom: none;
+    }
+    
+    .status-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    
+    .status-icon.pending {
+      background: #ffc107;
+      color: white;
+    }
+    
+    .status-icon.success {
+      background: #4caf50;
+      color: white;
+    }
+    
+    .status-icon.error {
+      background: #f44336;
+      color: white;
+    }
+    
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin: 20px 0;
+    }
+    
+    .btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    
+    .btn:hover {
+      background: #5568d3;
+    }
+    
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .console {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .console-line {
+      margin: 5px 0;
+      line-height: 1.5;
+    }
+    
+    .console-line.info {
+      color: #4fc3f7;
+    }
+    
+    .console-line.success {
+      color: #81c784;
+    }
+    
+    .console-line.error {
+      color: #e57373;
+    }
+    
+    .console-line.warn {
+      color: #ffb74d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Embed Script Test Page</h1>
+    <p>This page tests the RAG Assistant embed script functionality.</p>
+    
+    <div class="status">
+      <h3>Loading Status</h3>
+      <div class="status-item">
+        <div class="status-icon pending" id="embedStatus">⏳</div>
+        <div>
+          <strong>Embed Script</strong>
+          <div id="embedText">Loading...</div>
+        </div>
+      </div>
+      <div class="status-item">
+        <div class="status-icon pending" id="widgetStatus">⏳</div>
+        <div>
+          <strong>Widget Script</strong>
+          <div id="widgetText">Waiting...</div>
+        </div>
+      </div>
+      <div class="status-item">
+        <div class="status-icon pending" id="initStatus">⏳</div>
+        <div>
+          <strong>Widget Initialization</strong>
+          <div id="initText">Waiting...</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="controls">
+      <button class="btn" onclick="testOpen()" id="btnOpen" disabled>Open Widget</button>
+      <button class="btn" onclick="testClose()" id="btnClose" disabled>Close Widget</button>
+      <button class="btn" onclick="testMessage()" id="btnMessage" disabled>Send Test Message</button>
+      <button class="btn" onclick="testClear()" id="btnClear" disabled>Clear History</button>
+      <button class="btn" onclick="testReset()" id="btnReset" disabled>Reset Session</button>
+      <button class="btn" onclick="testGetSession()" id="btnGetSession" disabled>Get Session ID</button>
+    </div>
+    
+    <div class="console" id="console">
+      <div class="console-line info">Console output will appear here...</div>
+    </div>
+  </div>
+  
+  <script>
+    // Console logging
+    const consoleEl = document.getElementById('console');
+    
+    function log(message, type = 'info') {
+      const line = document.createElement('div');
+      line.className = `console-line ${type}`;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      consoleEl.appendChild(line);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+    
+    // Status updates
+    function updateStatus(id, status, text) {
+      const icon = document.getElementById(id);
+      const textEl = document.getElementById(id.replace('Status', 'Text'));
+      
+      icon.className = `status-icon ${status}`;
+      icon.textContent = status === 'success' ? '✓' : status === 'error' ? '✗' : '⏳';
+      textEl.textContent = text;
+    }
+    
+    // Test functions
+    function testOpen() {
+      log('Opening widget...', 'info');
+      ra('open');
+    }
+    
+    function testClose() {
+      log('Closing widget...', 'info');
+      ra('close');
+    }
+    
+    function testMessage() {
+      log('Sending test message...', 'info');
+      ra('sendMessage', 'Hello! This is a test message.');
+    }
+    
+    function testClear() {
+      log('Clearing history...', 'info');
+      ra('clearHistory');
+    }
+    
+    function testReset() {
+      log('Resetting session...', 'info');
+      ra('resetSession');
+    }
+    
+    function testGetSession() {
+      log('Getting session ID...', 'info');
+      ra('getSessionId', function(sessionId) {
+        log(`Session ID: ${sessionId}`, 'success');
+      });
+    }
+    
+    // Enable buttons when ready
+    function enableButtons() {
+      const buttons = ['btnOpen', 'btnClose', 'btnMessage', 'btnClear', 'btnReset', 'btnGetSession'];
+      buttons.forEach(id => {
+        document.getElementById(id).disabled = false;
+      });
+    }
+    
+    // Track loading
+    log('Starting embed script test...', 'info');
+    updateStatus('embedStatus', 'pending', 'Loading embed script...');
+    
+    // Override console methods to capture logs
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      log(args.join(' '), 'info');
+    };
+    
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      log(args.join(' '), 'error');
+    };
+    
+    console.warn = function(...args) {
+      originalWarn.apply(console, args);
+      log(args.join(' '), 'warn');
+    };
+  </script>
+  
+  <!-- RAG Assistant Widget - Async Embed Script -->
+  <script>
+    (function(w,d,s,o,f,js,fjs){
+      w['RAGAssistant']=o;w[o]=w[o]||function(){(w[o].q=w[o].q||[]).push(arguments)};
+      js=d.createElement(s),fjs=d.getElementsByTagName(s)[0];
+      js.id=o;js.src=f;js.async=1;
+      
+      // Track when script starts loading
+      js.onload = function() {
+        updateStatus('widgetStatus', 'success', 'Widget script loaded');
+        log('Widget script loaded successfully', 'success');
+      };
+      
+      js.onerror = function() {
+        updateStatus('widgetStatus', 'error', 'Failed to load widget script');
+        log('Failed to load widget script', 'error');
+      };
+      
+      fjs.parentNode.insertBefore(js,fjs);
+      
+      updateStatus('embedStatus', 'success', 'Embed script loaded');
+      log('Embed script loaded successfully', 'success');
+      updateStatus('widgetStatus', 'pending', 'Loading widget script...');
+      log('Loading widget script from: ' + f, 'info');
+    }(window,document,'script','ra','widget.js'));
+    
+    // Initialize widget
+    updateStatus('initStatus', 'pending', 'Initializing widget...');
+    log('Initializing widget...', 'info');
+    
+    ra('init', {
+      // ⚠️ REPLACE WITH YOUR CREDENTIALS - Get them from your dashboard
+      merchantId: 'demo_store_2024',
+      apiKey: 'pk_test_279f4099f6e3e961f8fbf465680baece06a4f361e134563f046bad8820d41cd8',
+      
+      // For local development
+      apiBaseUrl: 'http://localhost:3000',
+      
+      theme: {
+        primaryColor: '#667eea',
+        position: 'bottom-right'
+      },
+      
+      behavior: {
+        autoOpen: false,
+        greeting: 'Hi! 👋 This is a test widget. Try me out!',
+        maxRecommendations: 3
+      },
+      
+      integration: {
+        addToCartCallback: (product) => {
+          log(`Add to cart callback: ${product.title}`, 'success');
+        },
+        
+        checkoutCallback: (items) => {
+          log(`Checkout callback: ${items.length} items`, 'success');
+        },
+        
+        analyticsCallback: (event) => {
+          log(`Analytics event: ${event.event}`, 'info');
+        }
+      }
+    });
+    
+    // Check if widget initialized
+    setTimeout(() => {
+      if (window.RAGAssistant) {
+        updateStatus('initStatus', 'success', 'Widget initialized');
+        log('Widget initialized successfully', 'success');
+        enableButtons();
+      } else {
+        updateStatus('initStatus', 'error', 'Widget failed to initialize');
+        log('Widget failed to initialize', 'error');
+      }
+    }, 2000);
+  </script>
+</body>
+</html>

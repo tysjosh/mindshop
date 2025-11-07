@@ -6,6 +6,7 @@ import {
   SecretsManagerClient,
   GetSecretValueCommand,
 } from "@aws-sdk/client-secrets-manager";
+import { ApiResponse } from "../../types";
 
 export class BedrockIntegrationController {
   private mindsdbService: MindsDBService;
@@ -85,9 +86,13 @@ export class BedrockIntegrationController {
       } = req.body;
 
       if (!merchantId) {
-        res.status(400).json({
+        const response: ApiResponse = {
+          success: false,
           error: "Missing required parameter: merchantId",
-        });
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || 'unknown',
+        };
+        res.status(400).json(response);
         return;
       }
 
@@ -111,11 +116,15 @@ export class BedrockIntegrationController {
           );
           console.log(`Using stored credentials for merchant: ${merchantId}`);
         } catch (error) {
-          res.status(400).json({
+          const response: ApiResponse = {
+            success: false,
             error: "Failed to retrieve stored credentials",
             message: `Credential ID '${credentialId}' not found or inaccessible`,
-            credentialId,
-          });
+            details: { credentialId },
+            timestamp: new Date().toISOString(),
+            requestId: req.headers['x-request-id'] as string || 'unknown',
+          };
+          res.status(400).json(response);
           return;
         }
       } else if (useServiceDefaults || process.env.NODE_ENV === "development") {
@@ -128,37 +137,49 @@ export class BedrockIntegrationController {
         };
 
         if (!credentials.accessKeyId || !credentials.secretAccessKey) {
-          res.status(400).json({
+          const response: ApiResponse = {
+            success: false,
             error: "Missing AWS credentials",
             message:
               "Provide credentials via: 1) Request body (awsAccessKeyId, awsSecretAccessKey), 2) Credential reference (credentialId), or 3) Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)",
-            options: {
-              directCredentials:
-                "Include awsAccessKeyId and awsSecretAccessKey in request body",
-              storedCredentials:
-                "Include credentialId referencing stored credentials",
-              serviceDefaults:
-                "Set useServiceDefaults: true and configure environment variables",
+            details: {
+              options: {
+                directCredentials:
+                  "Include awsAccessKeyId and awsSecretAccessKey in request body",
+                storedCredentials:
+                  "Include credentialId referencing stored credentials",
+                serviceDefaults:
+                  "Set useServiceDefaults: true and configure environment variables",
+              },
             },
-          });
+            timestamp: new Date().toISOString(),
+            requestId: req.headers['x-request-id'] as string || 'unknown',
+          };
+          res.status(400).json(response);
           return;
         }
         console.log(
           `Using service default credentials for merchant: ${merchantId}`
         );
       } else {
-        res.status(400).json({
+        const response: ApiResponse = {
+          success: false,
           error: "No AWS credentials provided",
           message: "Must provide credentials via one of the supported methods",
-          supportedMethods: {
-            directCredentials:
-              "Include awsAccessKeyId and awsSecretAccessKey in request body",
-            storedCredentials:
-              "Include credentialId referencing stored credentials",
-            serviceDefaults:
-              "Set useServiceDefaults: true (requires environment variables)",
+          details: {
+            supportedMethods: {
+              directCredentials:
+                "Include awsAccessKeyId and awsSecretAccessKey in request body",
+              storedCredentials:
+                "Include credentialId referencing stored credentials",
+              serviceDefaults:
+                "Set useServiceDefaults: true (requires environment variables)",
+            },
           },
-        });
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || 'unknown',
+        };
+        res.status(400).json(response);
         return;
       }
 
@@ -174,9 +195,8 @@ export class BedrockIntegrationController {
         }
       );
 
-      res.json({
+      const response: ApiResponse = {
         success: true,
-        message: `Bedrock integration initialized for merchant: ${merchantId}`,
         data: {
           merchantId,
           engineName: `bedrock_engine_${merchantId}`,
@@ -194,13 +214,21 @@ export class BedrockIntegrationController {
             region: credentials.region,
           },
         },
-      });
+        message: `Bedrock integration initialized for merchant: ${merchantId}`,
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(200).json(response);
     } catch (error) {
       console.error("Bedrock integration initialization error:", error);
-      res.status(500).json({
+      const response: ApiResponse = {
+        success: false,
         error: "Failed to initialize Bedrock integration",
         message: error instanceof Error ? error.message : "Unknown error",
-      });
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(500).json(response);
     }
   }
 
@@ -224,15 +252,21 @@ export class BedrockIntegrationController {
         !awsAccessKeyId ||
         !awsSecretAccessKey
       ) {
-        res.status(400).json({
+        const response: ApiResponse = {
+          success: false,
           error: "Missing required parameters",
-          required: [
-            "merchantId",
-            "credentialId",
-            "awsAccessKeyId",
-            "awsSecretAccessKey",
-          ],
-        });
+          details: {
+            required: [
+              "merchantId",
+              "credentialId",
+              "awsAccessKeyId",
+              "awsSecretAccessKey",
+            ],
+          },
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || 'unknown',
+        };
+        res.status(400).json(response);
         return;
       }
 
@@ -278,9 +312,8 @@ export class BedrockIntegrationController {
         }
       }
 
-      res.json({
+      const response: ApiResponse = {
         success: true,
-        message: "Credentials stored securely",
         data: {
           merchantId,
           credentialId,
@@ -288,13 +321,21 @@ export class BedrockIntegrationController {
           region: awsRegion,
           storedAt: new Date().toISOString(),
         },
-      });
+        message: "Credentials stored securely",
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(200).json(response);
     } catch (error) {
       console.error("Credential storage error:", error);
-      res.status(500).json({
+      const response: ApiResponse = {
+        success: false,
         error: "Failed to store credentials",
         message: error instanceof Error ? error.message : "Unknown error",
-      });
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(500).json(response);
     }
   }
 
@@ -309,29 +350,39 @@ export class BedrockIntegrationController {
       const { merchantId } = req.params;
 
       if (!merchantId) {
-        res.status(400).json({
+        const response: ApiResponse = {
+          success: false,
           error: "merchantId is required",
-        });
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || 'unknown',
+        };
+        res.status(400).json(response);
         return;
       }
 
       const status =
         await this.ragService.getBedrockIntegrationStatus(merchantId);
 
-      res.json({
+      const response: ApiResponse = {
         success: true,
         data: {
           merchantId,
           ...status,
-          timestamp: new Date().toISOString(),
         },
-      });
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(200).json(response);
     } catch (error) {
       console.error("Bedrock status check error:", error);
-      res.status(500).json({
+      const response: ApiResponse = {
+        success: false,
         error: "Failed to get Bedrock integration status",
         message: error instanceof Error ? error.message : "Unknown error",
-      });
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(500).json(response);
     }
   }
 
@@ -350,10 +401,16 @@ export class BedrockIntegrationController {
       } = req.body;
 
       if (!merchantId || !question) {
-        res.status(400).json({
+        const response: ApiResponse = {
+          success: false,
           error: "Missing required parameters",
-          required: ["merchantId", "question"],
-        });
+          details: {
+            required: ["merchantId", "question"],
+          },
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || 'unknown',
+        };
+        res.status(400).json(response);
         return;
       }
 
@@ -368,21 +425,27 @@ export class BedrockIntegrationController {
         }
       );
 
-      res.json({
+      const response: ApiResponse = {
         success: true,
         data: {
           merchantId,
           question,
           ...result,
-          timestamp: new Date().toISOString(),
         },
-      });
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(200).json(response);
     } catch (error) {
       console.error("Bedrock question error:", error);
-      res.status(500).json({
+      const response: ApiResponse = {
+        success: false,
         error: "Failed to process question with Bedrock",
         message: error instanceof Error ? error.message : "Unknown error",
-      });
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(500).json(response);
     }
   }
 
@@ -401,10 +464,16 @@ export class BedrockIntegrationController {
       } = req.body;
 
       if (!merchantId || !query) {
-        res.status(400).json({
+        const response: ApiResponse = {
+          success: false,
           error: "Missing required parameters",
-          required: ["merchantId", "query"],
-        });
+          details: {
+            required: ["merchantId", "query"],
+          },
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || 'unknown',
+        };
+        res.status(400).json(response);
         return;
       }
 
@@ -420,21 +489,27 @@ export class BedrockIntegrationController {
       const result =
         await this.ragService.queryWithBedrockIntegration(ragQuery);
 
-      res.json({
+      const response: ApiResponse = {
         success: true,
         data: {
           merchantId,
           query,
           ...result,
-          timestamp: new Date().toISOString(),
         },
-      });
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(200).json(response);
     } catch (error) {
       console.error("Bedrock RAG query error:", error);
-      res.status(500).json({
+      const response: ApiResponse = {
+        success: false,
         error: "Failed to process RAG query with Bedrock",
         message: error instanceof Error ? error.message : "Unknown error",
-      });
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(500).json(response);
     }
   }
 
@@ -445,20 +520,26 @@ export class BedrockIntegrationController {
     try {
       const models = await this.mindsdbService.listBedrockModels();
 
-      res.json({
+      const response: ApiResponse = {
         success: true,
         data: {
           models,
           count: models.length,
-          timestamp: new Date().toISOString(),
         },
-      });
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(200).json(response);
     } catch (error) {
       console.error("List Bedrock models error:", error);
-      res.status(500).json({
+      const response: ApiResponse = {
+        success: false,
         error: "Failed to list Bedrock models",
         message: error instanceof Error ? error.message : "Unknown error",
-      });
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(500).json(response);
     }
   }
 
@@ -471,9 +552,13 @@ export class BedrockIntegrationController {
       const { testQuery = "Hello, can you help me?" } = req.body;
 
       if (!merchantId) {
-        res.status(400).json({
+        const response: ApiResponse = {
+          success: false,
           error: "merchantId is required",
-        });
+          timestamp: new Date().toISOString(),
+          requestId: req.headers['x-request-id'] as string || 'unknown',
+        };
+        res.status(400).json(response);
         return;
       }
 
@@ -491,7 +576,7 @@ export class BedrockIntegrationController {
 
       const executionTime = Date.now() - startTime;
 
-      res.json({
+      const response: ApiResponse = {
         success: true,
         data: {
           merchantId,
@@ -499,15 +584,21 @@ export class BedrockIntegrationController {
           status,
           testResult,
           executionTime,
-          timestamp: new Date().toISOString(),
         },
-      });
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(200).json(response);
     } catch (error) {
       console.error("Bedrock integration test error:", error);
-      res.status(500).json({
+      const response: ApiResponse = {
+        success: false,
         error: "Bedrock integration test failed",
         message: error instanceof Error ? error.message : "Unknown error",
-      });
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] as string || 'unknown',
+      };
+      res.status(500).json(response);
     }
   }
 }

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import Joi from 'joi';
 import { sessionController } from '../controllers/SessionController';
 import { authenticateJWT } from '../middleware/auth';
+import { requirePermissions } from '../middleware/apiKeyAuth';
 import { validateRequest } from '../middleware/validation';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { asyncHandler } from '../middleware/errorHandler';
@@ -151,11 +152,12 @@ router.get(
 /**
  * @route GET /api/sessions/analytics
  * @desc Get session analytics for a merchant
- * @access Private (requires authentication)
+ * @access Private (requires authentication + analytics:read permission)
  */
 router.get(
   '/analytics',
   analyticsRateLimit,
+  requirePermissions(['analytics:read']),
   validateRequest(analyticsQuerySchema),
   asyncHandler(sessionController.getSessionAnalytics.bind(sessionController))
 );
@@ -163,11 +165,12 @@ router.get(
 /**
  * @route GET /api/sessions/billing
  * @desc Get billing data for a merchant
- * @access Private (requires authentication)
+ * @access Private (requires authentication + analytics:read permission)
  */
 router.get(
   '/billing',
   analyticsRateLimit,
+  requirePermissions(['analytics:read']),
   validateRequest(billingQuerySchema),
   asyncHandler(sessionController.getBillingData.bind(sessionController))
 );
@@ -175,11 +178,12 @@ router.get(
 /**
  * @route GET /api/sessions/users/:userId
  * @desc Get user sessions
- * @access Private (requires authentication)
+ * @access Private (requires authentication + sessions:read permission)
  */
 router.get(
   '/users/:userId',
   sessionRateLimit,
+  requirePermissions(['sessions:read']),
   validateRequest({
     ...userIdParamSchema,
     ...getUserSessionsSchema,
@@ -190,11 +194,12 @@ router.get(
 /**
  * @route POST /api/sessions
  * @desc Create a new session
- * @access Private (requires authentication)
+ * @access Private (requires authentication + sessions:write permission)
  */
 router.post(
   '/',
   sessionRateLimit,
+  requirePermissions(['sessions:write']),
   validateRequest(createSessionSchema),
   asyncHandler(sessionController.createSession.bind(sessionController))
 );
@@ -202,11 +207,12 @@ router.post(
 /**
  * @route POST /api/sessions/cleanup
  * @desc Cleanup expired sessions for a merchant
- * @access Private (requires authentication)
+ * @access Private (requires authentication + sessions:write permission)
  */
 router.post(
   '/cleanup',
   sessionRateLimit,
+  requirePermissions(['sessions:write']),
   validateRequest(cleanupSessionsSchema),
   asyncHandler(sessionController.cleanupExpiredSessions.bind(sessionController))
 );
@@ -214,11 +220,12 @@ router.post(
 /**
  * @route POST /api/sessions/track-usage
  * @desc Track session usage for billing
- * @access Private (requires authentication)
+ * @access Private (requires authentication + sessions:write permission)
  */
 router.post(
   '/track-usage',
   sessionRateLimit,
+  requirePermissions(['sessions:write']),
   validateRequest(trackUsageSchema),
   asyncHandler(sessionController.trackUsage.bind(sessionController))
 );
@@ -226,11 +233,12 @@ router.post(
 /**
  * @route GET /api/sessions/:sessionId
  * @desc Get session details
- * @access Private (requires authentication)
+ * @access Private (requires authentication + sessions:read permission)
  */
 router.get(
   '/:sessionId',
   sessionRateLimit,
+  requirePermissions(['sessions:read']),
   validateRequest({
     ...sessionIdParamSchema,
     ...merchantIdQuerySchema,
@@ -241,11 +249,12 @@ router.get(
 /**
  * @route GET /api/sessions/:sessionId/messages
  * @desc Get session conversation history with pagination
- * @access Private (requires authentication)
+ * @access Private (requires authentication + sessions:read permission)
  */
 router.get(
   '/:sessionId/messages',
   sessionRateLimit,
+  requirePermissions(['sessions:read']),
   validateRequest({
     ...sessionIdParamSchema,
     ...getSessionMessagesSchema,
@@ -256,11 +265,12 @@ router.get(
 /**
  * @route PUT /api/sessions/:sessionId/context
  * @desc Update session context
- * @access Private (requires authentication)
+ * @access Private (requires authentication + sessions:write permission)
  */
 router.put(
   '/:sessionId/context',
   sessionRateLimit,
+  requirePermissions(['sessions:write']),
   validateRequest({
     ...sessionIdParamSchema,
     ...updateContextSchema,
@@ -274,11 +284,12 @@ router.put(
 /**
  * @route DELETE /api/sessions/:sessionId
  * @desc Delete session
- * @access Private (requires authentication)
+ * @access Private (requires authentication + sessions:write permission)
  */
 router.delete(
   '/:sessionId',
   sessionRateLimit,
+  requirePermissions(['sessions:write']),
   validateRequest({
     ...sessionIdParamSchema,
     ...deleteSessionSchema,

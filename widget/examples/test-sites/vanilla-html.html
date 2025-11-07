@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Site: Vanilla HTML</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 32px;
+    }
+    
+    .badge {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+    
+    .description {
+      color: #666;
+      line-height: 1.8;
+      font-size: 16px;
+    }
+    
+    .test-section {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .test-section h2 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 24px;
+    }
+    
+    .test-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .test-button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 15px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
+    }
+    
+    .test-button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .test-button:active {
+      transform: translateY(0);
+    }
+    
+    .status-box {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    
+    .status-box.success {
+      border-left-color: #4caf50;
+      background: #e8f5e9;
+    }
+    
+    .status-box.error {
+      border-left-color: #f44336;
+      background: #ffebee;
+    }
+    
+    .products {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    .product-card {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    
+    .product-image {
+      width: 100%;
+      height: 200px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+    }
+    
+    .product-info {
+      padding: 15px;
+    }
+    
+    .product-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    
+    .product-price {
+      font-size: 20px;
+      font-weight: 700;
+      color: #667eea;
+      margin: 10px 0;
+    }
+    
+    .product-button {
+      width: 100%;
+      padding: 10px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    
+    .product-button:hover {
+      background: #5568d3;
+    }
+    
+    .console-output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 15px;
+    }
+    
+    .console-line {
+      margin: 5px 0;
+      line-height: 1.5;
+    }
+    
+    .console-line.info { color: #4fc3f7; }
+    .console-line.success { color: #81c784; }
+    .console-line.error { color: #e57373; }
+    .console-line.warn { color: #ffb74d; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="badge">TEST SITE</span>
+      <h1>🧪 Vanilla HTML Test Site</h1>
+      <p class="description">
+        This test site validates the RAG Assistant widget integration in a pure HTML environment
+        with no frameworks or build tools. Tests include widget loading, initialization, 
+        programmatic control, and callback integration.
+      </p>
+    </div>
+
+    <div class="test-section">
+      <h2>📊 Widget Status</h2>
+      <div id="statusContainer">
+        <div class="status-box">
+          <strong>Loading...</strong> Initializing widget tests
+        </div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>🎮 Widget Controls</h2>
+      <p style="color: #666; margin-bottom: 15px;">
+        Test programmatic control of the widget using these buttons:
+      </p>
+      <div class="test-grid">
+        <button class="test-button" onclick="testOpen()">Open Widget</button>
+        <button class="test-button" onclick="testClose()">Close Widget</button>
+        <button class="test-button" onclick="testSendMessage()">Send Test Message</button>
+        <button class="test-button" onclick="testClearHistory()">Clear History</button>
+        <button class="test-button" onclick="testResetSession()">Reset Session</button>
+        <button class="test-button" onclick="testGetSessionId()">Get Session ID</button>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>🛍️ Sample Products</h2>
+      <p style="color: #666; margin-bottom: 15px;">
+        Try asking the assistant about these products or click "Add to Cart" to test callbacks:
+      </p>
+      <div class="products">
+        <div class="product-card">
+          <div class="product-image">💻</div>
+          <div class="product-info">
+            <h3 class="product-title">MacBook Pro 16"</h3>
+            <p style="color: #666; font-size: 14px;">M3 Max chip, 36GB RAM, 1TB SSD</p>
+            <div class="product-price">$3,499.00</div>
+            <button class="product-button" onclick="addToCart('MacBook Pro 16', 3499)">Add to Cart</button>
+          </div>
+        </div>
+
+        <div class="product-card">
+          <div class="product-image">📱</div>
+          <div class="product-info">
+            <h3 class="product-title">iPhone 15 Pro</h3>
+            <p style="color: #666; font-size: 14px;">Titanium, 256GB, A17 Pro chip</p>
+            <div class="product-price">$1,199.00</div>
+            <button class="product-button" onclick="addToCart('iPhone 15 Pro', 1199)">Add to Cart</button>
+          </div>
+        </div>
+
+        <div class="product-card">
+          <div class="product-image">⌚</div>
+          <div class="product-info">
+            <h3 class="product-title">Apple Watch Ultra 2</h3>
+            <p style="color: #666; font-size: 14px;">49mm, GPS + Cellular, Titanium</p>
+            <div class="product-price">$799.00</div>
+            <button class="product-button" onclick="addToCart('Apple Watch Ultra 2', 799)">Add to Cart</button>
+          </div>
+        </div>
+
+        <div class="product-card">
+          <div class="product-image">🎧</div>
+          <div class="product-info">
+            <h3 class="product-title">AirPods Max</h3>
+            <p style="color: #666; font-size: 14px;">Active Noise Cancellation, Spatial Audio</p>
+            <div class="product-price">$549.00</div>
+            <button class="product-button" onclick="addToCart('AirPods Max', 549)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>📝 Console Output</h2>
+      <div class="console-output" id="console">
+        <div class="console-line info">[INFO] Console initialized</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAG Assistant Widget -->
+  <script src="../../dist/widget.js"></script>
+  <script>
+    // Console logging
+    const consoleEl = document.getElementById('console');
+    const statusContainer = document.getElementById('statusContainer');
+    
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.className = `console-line ${type}`;
+      line.textContent = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
+      consoleEl.appendChild(line);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+    
+    function updateStatus(message, type = 'info') {
+      const statusClass = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+      statusContainer.innerHTML = `
+        <div class="status-box ${statusClass}">
+          <strong>${type === 'success' ? '✓' : type === 'error' ? '✗' : '⏳'}</strong> ${message}
+        </div>
+      `;
+    }
+    
+    // Test functions
+    function testOpen() {
+      log('Opening widget...', 'info');
+      if (window.assistantInstance) {
+        window.assistantInstance.open();
+        log('Widget opened', 'success');
+      } else {
+        log('Widget not initialized', 'error');
+      }
+    }
+    
+    function testClose() {
+      log('Closing widget...', 'info');
+      if (window.assistantInstance) {
+        window.assistantInstance.close();
+        log('Widget closed', 'success');
+      } else {
+        log('Widget not initialized', 'error');
+      }
+    }
+    
+    function testSendMessage() {
+      log('Sending test message...', 'info');
+      if (window.assistantInstance) {
+        window.assistantInstance.sendMessage('Hello! This is a test message from the vanilla HTML test site.');
+        log('Message sent', 'success');
+      } else {
+        log('Widget not initialized', 'error');
+      }
+    }
+    
+    function testClearHistory() {
+      log('Clearing history...', 'info');
+      if (window.assistantInstance) {
+        window.assistantInstance.clearHistory();
+        log('History cleared', 'success');
+      } else {
+        log('Widget not initialized', 'error');
+      }
+    }
+    
+    function testResetSession() {
+      log('Resetting session...', 'info');
+      if (window.assistantInstance) {
+        window.assistantInstance.resetSession();
+        log('Session reset', 'success');
+      } else {
+        log('Widget not initialized', 'error');
+      }
+    }
+    
+    function testGetSessionId() {
+      log('Getting session ID...', 'info');
+      if (window.assistantInstance) {
+        const sessionId = window.assistantInstance.getSessionId();
+        log(`Session ID: ${sessionId}`, 'success');
+        alert(`Session ID: ${sessionId}`);
+      } else {
+        log('Widget not initialized', 'error');
+      }
+    }
+    
+    function addToCart(productName, price) {
+      log(`Add to cart clicked: ${productName} ($${price})`, 'info');
+      alert(`Added "${productName}" to cart!\n\nPrice: $${price.toFixed(2)}\n\nIn a real implementation, this would add the item to your cart system.`);
+    }
+    
+    // Initialize widget
+    log('Initializing RAG Assistant widget...', 'info');
+    updateStatus('Initializing widget...', 'info');
+    
+    try {
+      const assistant = new RAGAssistant({
+        merchantId: 'test_vanilla_html_2024',
+        apiKey: 'pk_test_vanilla_html_key',
+        
+        // For local development
+        apiBaseUrl: 'http://localhost:3000',
+        
+        theme: {
+          primaryColor: '#667eea',
+          position: 'bottom-right'
+        },
+        
+        behavior: {
+          autoOpen: false,
+          greeting: 'Hi! 👋 I\'m your shopping assistant. How can I help you today?',
+          placeholder: 'Ask me anything...',
+          maxRecommendations: 3
+        },
+        
+        integration: {
+          addToCartCallback: (product) => {
+            log(`Callback: Add to cart - ${product.title} ($${product.price})`, 'success');
+            alert(`Added "${product.title}" to cart!\n\nPrice: $${product.price}\n\nSKU: ${product.sku || 'N/A'}`);
+          },
+          
+          checkoutCallback: (items) => {
+            log(`Callback: Checkout - ${items.length} items`, 'success');
+            alert(`Proceeding to checkout with ${items.length} item(s)`);
+          },
+          
+          analyticsCallback: (event) => {
+            log(`Callback: Analytics - ${event.event}`, 'info');
+          }
+        }
+      });
+      
+      // Store instance globally for testing
+      window.assistantInstance = assistant;
+      
+      log('Widget initialized successfully', 'success');
+      updateStatus('Widget initialized successfully! All tests ready.', 'success');
+      
+    } catch (error) {
+      log(`Failed to initialize widget: ${error.message}`, 'error');
+      updateStatus(`Failed to initialize widget: ${error.message}`, 'error');
+      console.error('Widget initialization error:', error);
+    }
+  </script>
+</body>
+</html>

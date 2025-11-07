@@ -288,3 +288,61 @@ export {
   type DashboardData,
   type HumanEvaluationTask,
 } from "./BusinessIntelligenceDashboardService";
+
+export {
+  MerchantService,
+  getMerchantService,
+} from "./MerchantService";
+
+export {
+  ApiKeyService,
+  getApiKeyService,
+  type GenerateKeyData,
+  type GenerateKeyResult,
+  type ValidateKeyResult,
+  type KeyUsageStats,
+} from "./ApiKeyService";
+
+export {
+  UsageTrackingService,
+  getUsageTrackingService,
+  type UsageMetrics,
+  type UsageHistoryEntry,
+  type TrackUsageData,
+} from "./UsageTrackingService";
+
+export {
+  AnalyticsService,
+  type AnalyticsOverview,
+  type QueryTimeSeriesData,
+  type TopQuery,
+  type IntentDistribution,
+  type PerformanceMetrics,
+} from "./AnalyticsService";
+
+export {
+  BillingService,
+  getBillingService,
+  type CreateCustomerData,
+  type SubscribeData,
+  type UpdateSubscriptionData,
+  type CancelSubscriptionData,
+} from "./BillingService";
+
+export {
+  WebhookService,
+  getWebhookService,
+  type CreateWebhookData,
+  type CreateWebhookResult,
+  type TriggerEventData,
+  type WebhookDeliveryStats,
+} from "./WebhookService";
+
+export {
+  ProductSyncService,
+  getProductSyncService,
+  type SyncConfiguration,
+  type SyncResult,
+  type ProductData,
+  type SyncStatus,
+} from "./ProductSyncService";

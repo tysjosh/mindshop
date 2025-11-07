@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Assistant - Angular Integration Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #dd0031 0%, #c3002f 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #dd0031 0%, #c3002f 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+    
+    .content {
+      padding: 40px;
+    }
+    
+    .section {
+      margin-bottom: 40px;
+    }
+    
+    .section h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #dd0031;
+    }
+    
+    .code-block {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      overflow-x: auto;
+    }
+    
+    .code-block pre {
+      margin: 0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    .info-box {
+      background: #ffebee;
+      border-left: 4px solid #dd0031;
+      padding: 20px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🅰️ Angular Integration</h1>
+      <p>How to integrate RAG Assistant into your Angular application</p>
+    </div>
+    
+    <div class="content">
+      <div class="section">
+        <h2>Installation</h2>
+        <div class="code-block">
+          <pre>npm install @rag-assistant/widget
+# or
+yarn add @rag-assistant/widget</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 1: Component Integration (Recommended)</h2>
+        <p>Initialize the widget in your app component.</p>
+        
+        <div class="code-block">
+          <pre>// app.component.ts
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import RAGAssistant from '@rag-assistant/widget';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent implements OnInit, OnDestroy {
+  private assistant: any;
+  
+  ngOnInit(): void {
+    this.assistant = new RAGAssistant({
+      merchantId: 'your_merchant_id',
+      apiKey: 'pk_live_...',
+      
+      theme: {
+        primaryColor: '#dd0031',
+        position: 'bottom-right'
+      },
+      
+      behavior: {
+        autoOpen: false,
+        greeting: 'Hi! 👋 How can I help you today?',
+        maxRecommendations: 3
+      },
+      
+      integration: {
+        addToCartCallback: (product) => {
+          // Call service method
+          this.addToCart(product);
+        },
+        
+        checkoutCallback: (items) => {
+          // Navigate to checkout
+          this.router.navigate(['/checkout']);
+        },
+        
+        analyticsCallback: (event) => {
+          // Track with your analytics
+          console.log('Analytics:', event);
+        }
+      }
+    });
+  }
+  
+  ngOnDestroy(): void {
+    // Cleanup
+    this.assistant = null;
+  }
+  
+  addToCart(product: any): void {
+    // Your cart logic
+    console.log('Add to cart:', product);
+  }
+  
+  openChat(): void {
+    if (this.assistant) {
+      this.assistant.open();
+    }
+  }
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 2: As an Angular Service</h2>
+        <p>Create a reusable service for the RAG Assistant.</p>
+        
+        <div class="code-block">
+          <pre>// services/rag-assistant.service.ts
+import { Injectable } from '@angular/core';
+import RAGAssistant from '@rag-assistant/widget';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class RAGAssistantService {
+  private assistant: any;
+  
+  constructor() {}
+  
+  initialize(config: any): void {
+    this.assistant = new RAGAssistant(config);
+  }
+  
+  open(): void {
+    if (this.assistant) {
+      this.assistant.open();
+    }
+  }
+  
+  close(): void {
+    if (this.assistant) {
+      this.assistant.close();
+    }
+  }
+  
+  sendMessage(message: string): void {
+    if (this.assistant) {
+      this.assistant.sendMessage(message);
+    }
+  }
+  
+  clearHistory(): void {
+    if (this.assistant) {
+      this.assistant.clearHistory();
+    }
+  }
+}
+
+// app.component.ts
+import { Component, OnInit } from '@angular/core';
+import { RAGAssistantService } from './services/rag-assistant.service';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html'
+})
+export class AppComponent implements OnInit {
+  constructor(private ragAssistant: RAGAssistantService) {}
+  
+  ngOnInit(): void {
+    this.ragAssistant.initialize({
+      merchantId: 'your_merchant_id',
+      apiKey: 'pk_live_...',
+      theme: {
+        primaryColor: '#dd0031'
+      }
+    });
+  }
+  
+  openChat(): void {
+    this.ragAssistant.open();
+  }
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 3: With Cart Service Integration</h2>
+        <p>Integrate with your existing cart service.</p>
+        
+        <div class="code-block">
+          <pre>// services/cart.service.ts
+import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class CartService {
+  private cartItems = new BehaviorSubject&lt;any[]&gt;([]);
+  public cartItems$ = this.cartItems.asObservable();
+  
+  addItem(product: any): void {
+    const current = this.cartItems.value;
+    this.cartItems.next([...current, product]);
+  }
+  
+  getItems(): any[] {
+    return this.cartItems.value;
+  }
+}
+
+// app.component.ts
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { CartService } from './services/cart.service';
+import RAGAssistant from '@rag-assistant/widget';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html'
+})
+export class AppComponent implements OnInit {
+  private assistant: any;
+  
+  constructor(
+    private cartService: CartService,
+    private router: Router
+  ) {}
+  
+  ngOnInit(): void {
+    this.assistant = new RAGAssistant({
+      merchantId: 'your_merchant_id',
+      apiKey: 'pk_live_...',
+      
+      integration: {
+        addToCartCallback: (product) => {
+          // Use cart service
+          this.cartService.addItem(product);
+          
+          // Show notification (using Angular Material Snackbar)
+          // this.snackBar.open(`Added ${product.title} to cart!`, 'Close', {
+          //   duration: 3000
+          // });
+        },
+        
+        checkoutCallback: (items) => {
+          // Navigate to checkout
+          this.router.navigate(['/checkout']);
+        },
+        
+        analyticsCallback: (event) => {
+          // Track with Google Analytics
+          if ((window as any).gtag) {
+            (window as any).gtag('event', event.event, {
+              event_category: 'RAG Assistant',
+              event_label: event.query
+            });
+          }
+        }
+      }
+    });
+  }
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 4: With NgRx Store</h2>
+        <p>Integrate with NgRx for state management.</p>
+        
+        <div class="code-block">
+          <pre>// store/cart/cart.actions.ts
+import { createAction, props } from '@ngrx/store';
+
+export const addToCart = createAction(
+  '[Cart] Add Item',
+  props&lt;{ product: any }&gt;()
+);
+
+// store/cart/cart.reducer.ts
+import { createReducer, on } from '@ngrx/store';
+import { addToCart } from './cart.actions';
+
+export interface CartState {
+  items: any[];
+}
+
+const initialState: CartState = {
+  items: []
+};
+
+export const cartReducer = createReducer(
+  initialState,
+  on(addToCart, (state, { product }) => ({
+    ...state,
+    items: [...state.items, product]
+  }))
+);
+
+// app.component.ts
+import { Component, OnInit } from '@angular/core';
+import { Store } from '@ngrx/store';
+import { Router } from '@angular/router';
+import { addToCart } from './store/cart/cart.actions';
+import RAGAssistant from '@rag-assistant/widget';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html'
+})
+export class AppComponent implements OnInit {
+  private assistant: any;
+  
+  constructor(
+    private store: Store,
+    private router: Router
+  ) {}
+  
+  ngOnInit(): void {
+    this.assistant = new RAGAssistant({
+      merchantId: 'your_merchant_id',
+      apiKey: 'pk_live_...',
+      
+      integration: {
+        addToCartCallback: (product) => {
+          // Dispatch NgRx action
+          this.store.dispatch(addToCart({ product }));
+        },
+        
+        checkoutCallback: (items) => {
+          this.router.navigate(['/checkout']);
+        }
+      }
+    });
+  }
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 5: Programmatic Control</h2>
+        <p>Control the widget from your Angular components.</p>
+        
+        <div class="code-block">
+          <pre>// app.component.ts
+import { Component, OnInit } from '@angular/core';
+import RAGAssistant from '@rag-assistant/widget';
+
+@Component({
+  selector: 'app-root',
+  template: `
+    &lt;div&gt;
+      &lt;h1&gt;My Angular Store&lt;/h1&gt;
+      
+      &lt;button (click)="openChat()"&gt;
+        💬 Chat with us
+      &lt;/button&gt;
+      
+      &lt;button (click)="sendMessage('Show me laptops')"&gt;
+        🔍 Find Laptops
+      &lt;/button&gt;
+      
+      &lt;button (click)="clearHistory()"&gt;
+        🗑️ Clear History
+      &lt;/button&gt;
+    &lt;/div&gt;
+  `
+})
+export class AppComponent implements OnInit {
+  private assistant: any;
+  
+  ngOnInit(): void {
+    this.assistant = new RAGAssistant({
+      merchantId: 'your_merchant_id',
+      apiKey: 'pk_live_...'
+    });
+  }
+  
+  openChat(): void {
+    if (this.assistant) {
+      this.assistant.open();
+    }
+  }
+  
+  sendMessage(message: string): void {
+    if (this.assistant) {
+      this.assistant.sendMessage(message);
+    }
+  }
+  
+  clearHistory(): void {
+    if (this.assistant) {
+      this.assistant.clearHistory();
+    }
+  }
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 6: As an Angular Module</h2>
+        <p>Create a reusable Angular module.</p>
+        
+        <div class="code-block">
+          <pre>// modules/rag-assistant/rag-assistant.module.ts
+import { NgModule, ModuleWithProviders } from '@angular/core';
+import { RAGAssistantService } from './rag-assistant.service';
+import { RAGAssistantConfig } from './rag-assistant.config';
+
+@NgModule({})
+export class RAGAssistantModule {
+  static forRoot(config: RAGAssistantConfig): ModuleWithProviders&lt;RAGAssistantModule&gt; {
+    return {
+      ngModule: RAGAssistantModule,
+      providers: [
+        RAGAssistantService,
+        { provide: RAGAssistantConfig, useValue: config }
+      ]
+    };
+  }
+}
+
+// app.module.ts
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { AppComponent } from './app.component';
+import { RAGAssistantModule } from './modules/rag-assistant/rag-assistant.module';
+
+@NgModule({
+  declarations: [AppComponent],
+  imports: [
+    BrowserModule,
+    RAGAssistantModule.forRoot({
+      merchantId: 'your_merchant_id',
+      apiKey: 'pk_live_...',
+      theme: {
+        primaryColor: '#dd0031'
+      }
+    })
+  ],
+  bootstrap: [AppComponent]
+})
+export class AppModule {}</pre>
+        </div>
+      </div>
+      
+      <div class="info-box">
+        <strong>💡 Pro Tips:</strong>
+        <ul style="margin-top: 10px; padding-left: 20px;">
+          <li>Initialize in <code>ngOnInit</code> lifecycle hook</li>
+          <li>Clean up in <code>ngOnDestroy</code> to prevent memory leaks</li>
+          <li>Create a service for reusability across components</li>
+          <li>Integrate with NgRx or services for state management</li>
+          <li>Use Angular Router for navigation in callbacks</li>
+          <li>Leverage dependency injection for clean architecture</li>
+        </ul>
+      </div>
+      
+      <div class="section">
+        <h2>TypeScript Support</h2>
+        <p>The widget includes full TypeScript definitions.</p>
+        
+        <div class="code-block">
+          <pre>// app.component.ts
+import { Component, OnInit } from '@angular/core';
+import RAGAssistant, { RAGConfig, Product } from '@rag-assistant/widget';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html'
+})
+export class AppComponent implements OnInit {
+  private assistant: RAGAssistant | null = null;
+  
+  ngOnInit(): void {
+    const config: RAGConfig = {
+      merchantId: 'your_merchant_id',
+      apiKey: 'pk_live_...',
+      integration: {
+        addToCartCallback: (product: Product) => {
+          console.log('Add to cart:', product);
+        }
+      }
+    };
+    
+    this.assistant = new RAGAssistant(config);
+  }
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

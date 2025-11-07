@@ -1,5 +1,5 @@
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
-import { Request, Response } from 'express';
+import rateLimit, { ipKeyGenerator, RateLimitRequestHandler } from 'express-rate-limit';
+import { Request, Response, NextFunction } from 'express';
 
 export interface RateLimitOptions {
   windowMs: number;
@@ -13,10 +13,10 @@ export interface RateLimitOptions {
 }
 
 /**
- * Create rate limiting middleware
+ * Create rate limiting middleware with custom headers
  */
 export const rateLimitMiddleware = (options: RateLimitOptions) => {
-  return rateLimit({
+  const limiter = rateLimit({
     windowMs: options.windowMs,
     max: options.max,
     message: {
@@ -25,8 +25,8 @@ export const rateLimitMiddleware = (options: RateLimitOptions) => {
       timestamp: new Date().toISOString(),
       retryAfter: Math.ceil(options.windowMs / 1000)
     },
-    standardHeaders: options.standardHeaders !== false,
-    legacyHeaders: options.legacyHeaders !== false,
+    standardHeaders: true, // Enable RateLimit-* headers (draft-6)
+    legacyHeaders: false, // Disable legacy X-RateLimit-* headers
     skipSuccessfulRequests: options.skipSuccessfulRequests || false,
     skipFailedRequests: options.skipFailedRequests || false,
     keyGenerator: options.keyGenerator || ((req: Request) => {
@@ -36,6 +36,14 @@ export const rateLimitMiddleware = (options: RateLimitOptions) => {
       return `${ip}:${merchantId}`;
     }),
     handler: (req: Request, res: Response) => {
+      // Calculate reset time
+      const resetTime = Date.now() + options.windowMs;
+      
+      // Set custom rate limit headers
+      res.setHeader('X-RateLimit-Limit', options.max.toString());
+      res.setHeader('X-RateLimit-Remaining', '0');
+      res.setHeader('X-RateLimit-Reset', Math.floor(resetTime / 1000).toString());
+      
       res.status(429).json({
         success: false,
         error: options.message || 'Too many requests from this IP, please try again later.',
@@ -45,6 +53,58 @@ export const rateLimitMiddleware = (options: RateLimitOptions) => {
       });
     }
   });
+
+  // Wrap the limiter to add custom headers on all requests
+  return (req: Request, res: Response, next: NextFunction) => {
+    // Store original end function
+    const originalEnd = res.end;
+    let headersSet = false;
+
+    // Override end to ensure headers are set
+    res.end = function(this: Response, ...args: any[]): Response {
+      if (!headersSet) {
+        // Set default headers if not already set by rate limiter
+        if (!res.getHeader('X-RateLimit-Limit')) {
+          const resetTime = Date.now() + options.windowMs;
+          res.setHeader('X-RateLimit-Limit', options.max.toString());
+          res.setHeader('X-RateLimit-Remaining', options.max.toString());
+          res.setHeader('X-RateLimit-Reset', Math.floor(resetTime / 1000).toString());
+        }
+        headersSet = true;
+      }
+      return originalEnd.apply(this, args as any);
+    };
+
+    // Call the actual rate limiter
+    limiter(req, res, (err?: any) => {
+      if (err) {
+        return next(err);
+      }
+      
+      // Extract rate limit info from standard headers if available
+      const rateLimitInfo = res.getHeader('RateLimit-Limit');
+      const rateLimitRemaining = res.getHeader('RateLimit-Remaining');
+      const rateLimitReset = res.getHeader('RateLimit-Reset');
+      
+      // Calculate reset time
+      const resetTime = Date.now() + options.windowMs;
+      const resetTimestamp = Math.floor(resetTime / 1000);
+      
+      // Set custom X-RateLimit-* headers
+      if (!res.getHeader('X-RateLimit-Limit')) {
+        res.setHeader('X-RateLimit-Limit', options.max.toString());
+      }
+      if (rateLimitRemaining !== undefined && !res.getHeader('X-RateLimit-Remaining')) {
+        res.setHeader('X-RateLimit-Remaining', rateLimitRemaining.toString());
+      }
+      if (!res.getHeader('X-RateLimit-Reset')) {
+        res.setHeader('X-RateLimit-Reset', resetTimestamp.toString());
+      }
+      
+      headersSet = true;
+      next();
+    });
+  };
 };
 
 /**

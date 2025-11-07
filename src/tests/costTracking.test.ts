@@ -61,7 +61,8 @@ describe('Cost Tracking Service', () => {
 
   describe('Session Cost Target Checking', () => {
     it('should return correct target cost', async () => {
-      const sessionId = 'non-existent-session';
+      // Use a valid UUID format for session ID
+      const sessionId = '00000000-0000-0000-0000-000000000001';
       
       const result = await costTrackingService.checkSessionCostTarget(sessionId);
 

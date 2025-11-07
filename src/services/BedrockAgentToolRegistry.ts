@@ -542,6 +542,11 @@ export class BedrockAgentToolRegistry {
       if (!(field in input)) {
         throw new Error(`Missing required field: ${field}`);
       }
+      
+      // Check for empty strings in required fields
+      if (typeof input[field] === 'string' && input[field].trim() === '') {
+        throw new Error(`Required field '${field}' cannot be empty`);
+      }
     }
   }
 

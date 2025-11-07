@@ -2,6 +2,7 @@ import { Router } from 'express';
 import Joi from 'joi';
 import { documentController } from '../controllers/DocumentController';
 import { authenticateJWT } from '../middleware/auth';
+import { apiKeyAuth, requirePermissions } from '../middleware/apiKeyAuth';
 import { validateRequest } from '../middleware/validation';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { asyncHandler } from '../middleware/errorHandler';
@@ -106,11 +107,12 @@ router.get(
 /**
  * @route POST /api/documents/search
  * @desc Search documents
- * @access Private (requires authentication)
+ * @access Private (requires authentication + documents:read permission)
  */
 router.post(
   '/search',
   documentRateLimit,
+  requirePermissions(['documents:read']),
   validateRequest(searchDocumentsSchema),
   asyncHandler(documentController.searchDocuments.bind(documentController))
 );
@@ -118,11 +120,12 @@ router.post(
 /**
  * @route GET /api/documents/stats
  * @desc Get document statistics for a merchant
- * @access Private (requires authentication)
+ * @access Private (requires authentication + documents:read permission)
  */
 router.get(
   '/stats',
   documentRateLimit,
+  requirePermissions(['documents:read']),
   validateRequest(merchantIdQuerySchema),
   asyncHandler(documentController.getDocumentStats.bind(documentController))
 );
@@ -130,11 +133,12 @@ router.get(
 /**
  * @route POST /api/documents
  * @desc Create a new document
- * @access Private (requires authentication)
+ * @access Private (requires authentication + documents:write permission)
  */
 router.post(
   '/',
   documentRateLimit,
+  requirePermissions(['documents:write']),
   validateRequest(createDocumentSchema),
   asyncHandler(documentController.createDocument.bind(documentController))
 );
@@ -142,11 +146,12 @@ router.post(
 /**
  * @route POST /api/documents/bulk
  * @desc Bulk upload documents
- * @access Private (requires authentication)
+ * @access Private (requires authentication + documents:write permission)
  */
 router.post(
   '/bulk',
   bulkUploadRateLimit,
+  requirePermissions(['documents:write']),
   validateRequest(bulkUploadSchema),
   asyncHandler(documentController.bulkUploadDocuments.bind(documentController))
 );
@@ -154,11 +159,12 @@ router.post(
 /**
  * @route GET /api/documents/:documentId
  * @desc Get document by ID
- * @access Private (requires authentication)
+ * @access Private (requires authentication + documents:read permission)
  */
 router.get(
   '/:documentId',
   documentRateLimit,
+  requirePermissions(['documents:read']),
   validateRequest({
     ...documentIdParamSchema,
     ...merchantIdQuerySchema,
@@ -169,11 +175,12 @@ router.get(
 /**
  * @route PUT /api/documents/:documentId
  * @desc Update document
- * @access Private (requires authentication)
+ * @access Private (requires authentication + documents:write permission)
  */
 router.put(
   '/:documentId',
   documentRateLimit,
+  requirePermissions(['documents:write']),
   validateRequest({
     ...documentIdParamSchema,
     ...updateDocumentSchema,
@@ -187,11 +194,12 @@ router.put(
 /**
  * @route DELETE /api/documents/:documentId
  * @desc Delete document
- * @access Private (requires authentication)
+ * @access Private (requires authentication + documents:delete permission)
  */
 router.delete(
   '/:documentId',
   documentRateLimit,
+  requirePermissions(['documents:delete']),
   validateRequest({
     ...documentIdParamSchema,
     ...deleteDocumentSchema,

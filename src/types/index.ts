@@ -1,5 +1,11 @@
 // Core data models and interfaces for MindsDB RAG Assistant
 
+// Export merchant platform types
+export * from './merchant-platform';
+
+// Export permissions types
+export * from './permissions';
+
 export interface Document {
   id: string;
   merchantId: string;
@@ -247,6 +253,8 @@ export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
+  message?: string; // For success or informational messages
+  details?: any; // For validation errors and additional error information
   timestamp: string;
   requestId: string;
 }

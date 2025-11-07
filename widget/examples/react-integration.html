@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Assistant - React Integration Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+    
+    .content {
+      padding: 40px;
+    }
+    
+    .section {
+      margin-bottom: 40px;
+    }
+    
+    .section h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #667eea;
+    }
+    
+    .code-block {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      overflow-x: auto;
+    }
+    
+    .code-block pre {
+      margin: 0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 20px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    
+    .steps {
+      list-style: none;
+      counter-reset: step-counter;
+    }
+    
+    .steps li {
+      counter-increment: step-counter;
+      margin-bottom: 20px;
+      padding-left: 40px;
+      position: relative;
+    }
+    
+    .steps li::before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      background: #667eea;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚛️ React Integration</h1>
+      <p>How to integrate RAG Assistant into your React application</p>
+    </div>
+    
+    <div class="content">
+      <div class="section">
+        <h2>Installation</h2>
+        <div class="code-block">
+          <pre>npm install @rag-assistant/widget
+# or
+yarn add @rag-assistant/widget</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 1: Using useEffect Hook (Recommended)</h2>
+        <p>This is the cleanest way to integrate the widget in a React functional component.</p>
+        
+        <div class="code-block">
+          <pre>import { useEffect } from 'react';
+import RAGAssistant from '@rag-assistant/widget';
+
+function App() {
+  useEffect(() => {
+    // Initialize the widget
+    const assistant = new RAGAssistant({
+      merchantId: 'your_merchant_id',
+      apiKey: 'pk_live_...',
+      
+      theme: {
+        primaryColor: '#667eea',
+        position: 'bottom-right'
+      },
+      
+      behavior: {
+        autoOpen: false,
+        greeting: 'Hi! 👋 How can I help you today?',
+        maxRecommendations: 3
+      },
+      
+      integration: {
+        addToCartCallback: (product) => {
+          // Use your Redux/Context cart actions
+          // dispatch(addToCart(product));
+          console.log('Add to cart:', product);
+        },
+        
+        checkoutCallback: (items) => {
+          // Navigate to checkout
+          // navigate('/checkout');
+          console.log('Checkout:', items);
+        },
+        
+        analyticsCallback: (event) => {
+          // Track with your analytics
+          // analytics.track(event.event, event);
+          console.log('Analytics:', event);
+        }
+      }
+    });
+    
+    // Cleanup function (optional)
+    return () => {
+      // Clean up if needed
+      // assistant.destroy();
+    };
+  }, []); // Empty dependency array = run once on mount
+  
+  return (
+    &lt;div className="App"&gt;
+      &lt;h1&gt;My React Store&lt;/h1&gt;
+      {/* Your app content */}
+    &lt;/div&gt;
+  );
+}
+
+export default App;</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 2: Custom Hook</h2>
+        <p>Create a reusable hook for the RAG Assistant.</p>
+        
+        <div class="code-block">
+          <pre>// hooks/useRAGAssistant.js
+import { useEffect, useRef } from 'react';
+import RAGAssistant from '@rag-assistant/widget';
+
+export function useRAGAssistant(config) {
+  const assistantRef = useRef(null);
+  
+  useEffect(() => {
+    if (!assistantRef.current) {
+      assistantRef.current = new RAGAssistant(config);
+    }
+    
+    return () => {
+      // Cleanup
+      assistantRef.current = null;
+    };
+  }, [config]);
+  
+  return assistantRef.current;
+}
+
+// Usage in component:
+import { useRAGAssistant } from './hooks/useRAGAssistant';
+import { useDispatch } from 'react-redux';
+import { addToCart } from './store/cartSlice';
+
+function App() {
+  const dispatch = useDispatch();
+  
+  const assistant = useRAGAssistant({
+    merchantId: 'your_merchant_id',
+    apiKey: 'pk_live_...',
+    integration: {
+      addToCartCallback: (product) => {
+        dispatch(addToCart(product));
+      }
+    }
+  });
+  
+  return &lt;div&gt;Your App&lt;/div&gt;;
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 3: With Redux Integration</h2>
+        <p>Full example with Redux for state management.</p>
+        
+        <div class="code-block">
+          <pre>import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import RAGAssistant from '@rag-assistant/widget';
+import { addToCart } from './store/cartSlice';
+
+function App() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const user = useSelector(state => state.user);
+  
+  useEffect(() => {
+    const assistant = new RAGAssistant({
+      merchantId: 'your_merchant_id',
+      apiKey: 'pk_live_...',
+      
+      theme: {
+        primaryColor: '#667eea',
+        position: 'bottom-right'
+      },
+      
+      behavior: {
+        autoOpen: false,
+        greeting: `Hi ${user.name || 'there'}! 👋 How can I help?`,
+        maxRecommendations: 3
+      },
+      
+      integration: {
+        addToCartCallback: (product) => {
+          // Dispatch Redux action
+          dispatch(addToCart({
+            id: product.id,
+            title: product.title,
+            price: product.price,
+            quantity: 1,
+            imageUrl: product.imageUrl
+          }));
+          
+          // Show toast notification
+          toast.success(`Added ${product.title} to cart!`);
+        },
+        
+        checkoutCallback: (items) => {
+          // Navigate to checkout page
+          navigate('/checkout');
+        },
+        
+        analyticsCallback: (event) => {
+          // Track with Google Analytics
+          if (window.gtag) {
+            window.gtag('event', event.event, {
+              event_category: 'RAG Assistant',
+              event_label: event.query,
+              value: event.responseTime
+            });
+          }
+        }
+      }
+    });
+    
+    return () => {
+      // Cleanup
+    };
+  }, [dispatch, navigate, user.name]);
+  
+  return (
+    &lt;div className="App"&gt;
+      {/* Your app content */}
+    &lt;/div&gt;
+  );
+}
+
+export default App;</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 4: With Context API</h2>
+        <p>Using React Context for global state management.</p>
+        
+        <div class="code-block">
+          <pre>// contexts/CartContext.js
+import { createContext, useContext, useState } from 'react';
+
+const CartContext = createContext();
+
+export function CartProvider({ children }) {
+  const [cart, setCart] = useState([]);
+  
+  const addToCart = (product) => {
+    setCart(prev => [...prev, product]);
+  };
+  
+  return (
+    &lt;CartContext.Provider value={{ cart, addToCart }}&gt;
+      {children}
+    &lt;/CartContext.Provider&gt;
+  );
+}
+
+export const useCart = () => useContext(CartContext);
+
+// App.js
+import { useEffect } from 'react';
+import { useCart } from './contexts/CartContext';
+import RAGAssistant from '@rag-assistant/widget';
+
+function App() {
+  const { addToCart } = useCart();
+  
+  useEffect(() => {
+    const assistant = new RAGAssistant({
+      merchantId: 'your_merchant_id',
+      apiKey: 'pk_live_...',
+      integration: {
+        addToCartCallback: (product) => {
+          addToCart(product);
+        }
+      }
+    });
+  }, [addToCart]);
+  
+  return &lt;div&gt;Your App&lt;/div&gt;;
+}</pre>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Method 5: Programmatic Control</h2>
+        <p>Control the widget programmatically from your React components.</p>
+        
+        <div class="code-block">
+          <pre>import { useEffect, useRef } from 'react';
+import RAGAssistant from '@rag-assistant/widget';
+
+function App() {
+  const assistantRef = useRef(null);
+  
+  useEffect(() => {
+    assistantRef.current = new RAGAssistant({
+      merchantId: 'your_merchant_id',
+      apiKey: 'pk_live_...'
+    });
+  }, []);
+  
+  const handleOpenChat = () => {
+    if (assistantRef.current) {
+      assistantRef.current.open();
+    }
+  };
+  
+  const handleSendMessage = (message) => {
+    if (assistantRef.current) {
+      assistantRef.current.sendMessage(message);
+    }
+  };
+  
+  return (
+    &lt;div&gt;
+      &lt;button onClick={handleOpenChat}&gt;
+        💬 Chat with us
+      &lt;/button&gt;
+      
+      &lt;button onClick={() => handleSendMessage('Show me laptops')}&gt;
+        🔍 Find Laptops
+      &lt;/button&gt;
+    &lt;/div&gt;
+  );
+}</pre>
+        </div>
+      </div>
+      
+      <div class="info-box">
+        <strong>💡 Pro Tips:</strong>
+        <ul style="margin-top: 10px; padding-left: 20px;">
+          <li>Use <code>useEffect</code> with empty dependency array to initialize once</li>
+          <li>Store the assistant instance in a ref if you need to control it</li>
+          <li>Integrate with your existing state management (Redux, Context, etc.)</li>
+          <li>Use environment variables for API keys</li>
+          <li>Add error boundaries to catch any widget errors</li>
+        </ul>
+      </div>
+      
+      <div class="section">
+        <h2>TypeScript Support</h2>
+        <p>The widget includes TypeScript definitions.</p>
+        
+        <div class="code-block">
+          <pre>import { useEffect } from 'react';
+import RAGAssistant, { RAGConfig, Product } from '@rag-assistant/widget';
+
+function App() {
+  useEffect(() => {
+    const config: RAGConfig = {
+      merchantId: 'your_merchant_id',
+      apiKey: 'pk_live_...',
+      integration: {
+        addToCartCallback: (product: Product) => {
+          console.log('Add to cart:', product);
+        }
+      }
+    };
+    
+    const assistant = new RAGAssistant(config);
+  }, []);
+  
+  return &lt;div&gt;Your App&lt;/div&gt;;
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
